@@ -11,6 +11,8 @@
 - The clock in the all-apps header is now the same view as the first-screen clock: it shrinks and rises while staying centered, instead of cross-fading into a second clock in the corner.
 - The first screen's row of apps is now literally the first row of the all-apps matrix - one scrollable list rather than two grids. Pressing ↓ slides that row up under the shrinking clock, and pressing ↓ again carries it off the top like any other row.
 - Fixed the focused row resting half off the bottom of the screen on 720p: the platform's own reveal for a focused child ignores the list's bottom inset here, so the matrix now positions the reveal itself and keeps every row inside the safe area.
+- The clock now tracks the scroll offset instead of a separate expanded flag, so it can never disagree with the list - coming back up always returns it to full size.
+- Pressing ↓ on the last row no longer pages the list: a plain ScrollView treats unhandled D-pad presses as page scrolls, which walked the whole matrix off the screen. The matrix now leaves those keys to focus navigation, so the last row simply stays where it is.
 - Verified on an Android 5.1.1 TV box at 1080p and at a forced 720p, including a real reboot with Perch as the only home app.
 
 ## 0.1.0 - 2026-10-20

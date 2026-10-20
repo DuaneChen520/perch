@@ -3,6 +3,7 @@ package io.github.duanechen520.perch;
 import android.animation.ValueAnimator;
 import android.app.Activity;
 import android.content.ComponentName;
+import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
@@ -266,8 +267,6 @@ public class MainActivity extends Activity {
     private void buildUi() {
         root = new FrameLayout(this);
         root.setBackgroundColor(color(R.color.bg));
-        root.setFocusable(true);
-        root.setFocusableInTouchMode(true);
         setContentView(root);
 
         root.addView(new WallpaperBackground(this), new FrameLayout.LayoutParams(
@@ -346,7 +345,7 @@ public class MainActivity extends Activity {
 
     /** One scrollable matrix. The first screen is this list resting at the bottom. */
     private void buildGrid() {
-        fullScroll = new ScrollView(this);
+        fullScroll = new MatrixScroll(this);
         fullScroll.setFillViewport(true);
         fullScroll.setVerticalScrollBarEnabled(false);
         fullScroll.setOverScrollMode(View.OVER_SCROLL_NEVER);
@@ -512,6 +511,7 @@ public class MainActivity extends Activity {
         // The tail keeps the lead inside the scroll range even when the grid is
         // too short to fill the screen; focus never reaches it.
         setSpacerHeight(tailSpace, viewport);
+        applyHeroOffset(fullScroll.getScrollY());
     }
 
     private void setSpacerHeight(View spacer, int height) {
@@ -704,12 +704,8 @@ public class MainActivity extends Activity {
         final int start = fullScroll.getScrollY();
         layoutLead();
 
-        final float scale = expand ? HERO_EXPANDED_SCALE : 1f;
-        final float lift = expand ? heroExpandedTranslationY() : 0f;
         final int target = expand ? leadHeight : 0;
         if (animationsEnabled()) {
-            heroClock.animate().scaleX(scale).scaleY(scale).translationY(lift)
-                    .setDuration(SLIDE_MS).start();
             scrollAnimator = ValueAnimator.ofInt(start, target);
             scrollAnimator.setDuration(SLIDE_MS);
             scrollAnimator.addUpdateListener(new ValueAnimator.AnimatorUpdateListener() {
@@ -720,9 +716,6 @@ public class MainActivity extends Activity {
             });
             scrollAnimator.start();
         } else {
-            heroClock.setScaleX(scale);
-            heroClock.setScaleY(scale);
-            heroClock.setTranslationY(lift);
             fullScroll.scrollTo(0, target);
         }
         focusArea(expanded);
@@ -907,12 +900,6 @@ public class MainActivity extends Activity {
     private void focusArea(boolean full) {
         int limit = full ? tiles.size() : Math.min(COLUMNS, tiles.size());
         if (limit == 0) {
-            root.post(new Runnable() {
-                @Override
-                public void run() {
-                    root.requestFocus();
-                }
-            });
             return;
         }
         View target = findTile(focusedPackage, limit);
@@ -953,7 +940,6 @@ public class MainActivity extends Activity {
     }
 
     private void cancelAnimations() {
-        heroClock.animate().cancel();
         if (scrollAnimator != null) {
             scrollAnimator.cancel();
             scrollAnimator = null;
@@ -967,6 +953,16 @@ public class MainActivity extends Activity {
                 ? heroClock.getHeight() : dp(HERO_FALLBACK_HEIGHT_DP);
         return dp(HERO_EXPANDED_TOP_DP) - heroClock.getTop()
                 - height * (1f - HERO_EXPANDED_SCALE) / 2f;
+    }
+
+    /** The clock is a function of the scroll, so it can never disagree with the list. */
+    private void applyHeroOffset(int scrollY) {
+        float t = leadHeight > 0
+                ? Math.max(0f, Math.min(1f, (float) scrollY / leadHeight)) : 0f;
+        float scale = 1f + (HERO_EXPANDED_SCALE - 1f) * t;
+        heroClock.setScaleX(scale);
+        heroClock.setScaleY(scale);
+        heroClock.setTranslationY(heroExpandedTranslationY() * t);
     }
 
     private void applyTypeScale() {
@@ -986,7 +982,6 @@ public class MainActivity extends Activity {
                 applyHeaderInset();
                 layoutLead();
                 if (expanded) {
-                    heroClock.setTranslationY(heroExpandedTranslationY());
                     fullScroll.scrollTo(0, leadHeight);
                 }
             }
@@ -1128,5 +1123,24 @@ public class MainActivity extends Activity {
 
     private int dp(int value) {
         return Math.round(value * getResources().getDisplayMetrics().density);
+    }
+
+    private class MatrixScroll extends ScrollView {
+
+        MatrixScroll(Context context) {
+            super(context);
+        }
+
+        @Override
+        protected void onScrollChanged(int left, int top, int oldLeft, int oldTop) {
+            super.onScrollChanged(left, top, oldLeft, oldTop);
+            applyHeroOffset(top);
+        }
+
+        /** D-pad pages a plain ScrollView; here it moves focus, so the fallback is off. */
+        @Override
+        public boolean executeKeyEvent(KeyEvent event) {
+            return false;
+        }
     }
 }
