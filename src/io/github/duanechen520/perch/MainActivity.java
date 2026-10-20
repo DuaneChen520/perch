@@ -374,7 +374,7 @@ public class MainActivity extends Activity {
         LinearLayout topBar = new LinearLayout(this);
         topBar.setOrientation(LinearLayout.HORIZONTAL);
         topBar.setGravity(Gravity.CENTER_VERTICAL);
-        topBar.setPadding(dp(64), dp(34), dp(64), dp(4));
+        topBar.setPadding(dp(64), dp(40), dp(64), dp(4));
         fullLayer.addView(topBar, new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT));
@@ -419,7 +419,7 @@ public class MainActivity extends Activity {
 
         fullGrid = new LinearLayout(this);
         fullGrid.setOrientation(LinearLayout.VERTICAL);
-        fullGrid.setPadding(dp(56), dp(16), dp(56), dp(48));
+        fullGrid.setPadding(dp(64), dp(16), dp(64), dp(48));
         fullScroll.addView(fullGrid, new ScrollView.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT));
@@ -430,7 +430,7 @@ public class MainActivity extends Activity {
         sheet.setOrientation(LinearLayout.HORIZONTAL);
         sheet.setGravity(Gravity.CENTER_VERTICAL);
         sheet.setBackgroundColor(color(R.color.sheet));
-        sheet.setPadding(dp(40), dp(40), dp(40), dp(20));
+        sheet.setPadding(dp(64), dp(40), dp(64), dp(20));
         sheet.setVisibility(View.GONE);
         root.addView(sheet, new FrameLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
