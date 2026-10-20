@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Perch</string>
+    <string name="settings_label">Perch settings</string>
+    <string name="tagline">A quiet perch for your TV.</string>
+
+    <string name="a11y_clock">Current time %1$s, %2$s</string>
+    <string name="a11y_pinned_app">%1$s, pinned</string>
+    <string name="pin_limit">Up to five pinned apps</string>
+    <string name="pinned_toast">Pinned %1$s</string>
+    <string name="unpinned_toast">Unpinned %1$s</string>
+    <string name="launch_failed">Cannot open %1$s</string>
+
+    <string name="ip_connected">IP %1$s</string>
+    <string name="ip_none">IP --</string>
+
+    <string name="quick_network">Network</string>
+    <string name="quick_bluetooth">Bluetooth</string>
+    <string name="quick_display">Display</string>
+    <string name="quick_sound">Sound</string>
+    <string name="quick_accessibility">Accessibility</string>
+    <string name="quick_all_settings">All settings</string>
+    <string name="quick_perch">Perch settings</string>
+    <string name="quick_settings_unavailable">This device has no settings screen for that.</string>
+
+    <string name="settings_title">Perch settings</string>
+    <string name="settings_back">Back to home</string>
+
+    <string name="settings_heading_default_home">Default home</string>
+    <string name="settings_home_default">Perch is your default home.</string>
+    <string name="settings_home_not_default">Perch is not your default home yet.</string>
+    <string name="settings_open_home_settings">Open home app settings</string>
+    <string name="settings_home_settings_missing">This device has no home app settings. Press HOME and choose Perch, or see the README for the ADB method.</string>
+
+    <string name="settings_heading_pins">Pinned apps</string>
+    <string name="settings_pins_hint">Long-press OK on any app to pin or unpin it. Up to five pinned apps appear first.</string>
+    <string name="settings_pins_empty">No pinned apps yet.</string>
+    <string name="settings_unpin">Unpin</string>
+    <string name="settings_pinned_removed">Unpinned %1$s</string>
+
+    <string name="settings_heading_text">Text size</string>
+    <string name="text_small">Small</string>
+    <string name="text_standard">Standard</string>
+    <string name="text_large">Large</string>
+
+    <string name="settings_heading_clock">Clock</string>
+    <string name="clock_24h">24-hour</string>
+    <string name="clock_system">Follow system</string>
+
+    <string name="settings_heading_diagnostics">Diagnostics</string>
+    <string name="settings_show_ip">Show local IP address</string>
+    <string name="settings_state_on">On</string>
+    <string name="settings_state_off">Off</string>
+    <string name="settings_ip_hint">Development aid only. The address stays on this device.</string>
+
+    <string name="settings_heading_controls">Controls</string>
+    <string name="settings_controls">On the home screen, ↓ opens all apps and ↑ opens quick settings. BACK returns to the large clock. Long-press OK pins an app.</string>
+
+    <string name="settings_heading_about">About</string>
+    <string name="settings_about">Perch %1$s · Apache-2.0\nNo ads, telemetry, or Internet permission.</string>
+</resources>

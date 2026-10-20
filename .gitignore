@@ -1,0 +1,21 @@
+# Build output
+build/
+dist/
+*.apk
+*.idsig
+
+# Local signing material must never be committed
+signing/
+keys/
+*.jks
+*.keystore
+*.p12
+*.kspass
+.kspass
+
+# IDE / local files
+.idea/
+*.iml
+.DS_Store
+Thumbs.db
+local.properties

@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">栖</string>
+    <string name="settings_label">栖设置</string>
+    <string name="tagline">电视的安静落脚处。</string>
+
+    <string name="a11y_clock">当前时间 %1$s，%2$s</string>
+    <string name="a11y_pinned_app">%1$s，已置顶</string>
+    <string name="pin_limit">最多置顶 5 个应用</string>
+    <string name="pinned_toast">已置顶 %1$s</string>
+    <string name="unpinned_toast">已取消置顶 %1$s</string>
+    <string name="launch_failed">无法打开 %1$s</string>
+
+    <string name="ip_connected">IP %1$s</string>
+    <string name="ip_none">IP --</string>
+
+    <string name="quick_network">网络</string>
+    <string name="quick_bluetooth">蓝牙</string>
+    <string name="quick_display">显示</string>
+    <string name="quick_sound">声音</string>
+    <string name="quick_accessibility">无障碍</string>
+    <string name="quick_all_settings">全部设置</string>
+    <string name="quick_perch">栖设置</string>
+    <string name="quick_settings_unavailable">此设备没有该设置项。</string>
+
+    <string name="settings_title">栖设置</string>
+    <string name="settings_back">返回桌面</string>
+
+    <string name="settings_heading_default_home">默认桌面</string>
+    <string name="settings_home_default">栖已是默认桌面。</string>
+    <string name="settings_home_not_default">栖还不是默认桌面。</string>
+    <string name="settings_open_home_settings">打开桌面设置</string>
+    <string name="settings_home_settings_missing">此设备没有桌面设置入口。可按 HOME 键选择栖，或参考 README 中的 ADB 方法。</string>
+
+    <string name="settings_heading_pins">置顶应用</string>
+    <string name="settings_pins_hint">在任意应用上长按 OK 可置顶或取消置顶。最多置顶 5 个，置顶应用会排在前面。</string>
+    <string name="settings_pins_empty">暂无置顶应用。</string>
+    <string name="settings_unpin">取消置顶</string>
+    <string name="settings_pinned_removed">已取消置顶 %1$s</string>
+
+    <string name="settings_heading_text">字号</string>
+    <string name="text_small">小</string>
+    <string name="text_standard">标准</string>
+    <string name="text_large">大</string>
+
+    <string name="settings_heading_clock">时钟</string>
+    <string name="clock_24h">24 小时</string>
+    <string name="clock_system">跟随系统</string>
+
+    <string name="settings_heading_diagnostics">调试</string>
+    <string name="settings_show_ip">显示本机 IP 地址</string>
+    <string name="settings_state_on">已开启</string>
+    <string name="settings_state_off">已关闭</string>
+    <string name="settings_ip_hint">仅用于调试，地址只留在本机。</string>
+
+    <string name="settings_heading_controls">操作</string>
+    <string name="settings_controls">桌面按 ↓ 显示全部应用，按 ↑ 打开快捷设置，按 BACK 回到大时钟；长按 OK 可置顶应用。</string>
+
+    <string name="settings_heading_about">关于</string>
+    <string name="settings_about">栖 Perch %1$s · Apache-2.0\n无广告、无遥测、无 INTERNET 权限。</string>
+</resources>

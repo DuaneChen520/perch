@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="bg">#1B1A17</color>
+    <color name="sheet">#25231E</color>
+    <color name="text_primary">#F3EEE5</color>
+    <color name="text_secondary">#B0A89A</color>
+    <color name="text_hint">#9C9487</color>
+    <color name="accent">#A6B98D</color>
+    <color name="accent_dim">#7E8F6B</color>
+    <color name="hairline">#33F3EEE5</color>
+    <color name="icon_bg">#2A2823</color>
+    <color name="status_ok">#A6B98D</color>
+    <color name="status_warn">#DDBB84</color>
+    <color name="transparent">#00000000</color>
+    <color name="focus_fill">#0FFFFFFF</color>
+    <color name="press_fill">#14F3EEE5</color>
+</resources>
