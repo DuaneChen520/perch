@@ -8,7 +8,9 @@
 - Fixed the compact app row stretching when fewer than five apps are installed; the row now holds five equal slots.
 - App tiles now reserve two label lines and center their content, so the focus ring hugs the tile instead of trailing empty space.
 - The clock in the all-apps header now follows the text-size preset.
-- The clock in the all-apps header is now the same view as the first-screen clock: it shrinks and rises while staying centered, instead of cross-fading into a second clock in the corner. The all-apps grid starts below it, so scrolled tiles never pass under the time.
+- The clock in the all-apps header is now the same view as the first-screen clock: it shrinks and rises while staying centered, instead of cross-fading into a second clock in the corner.
+- The first screen's row of apps is now literally the first row of the all-apps matrix - one scrollable list rather than two grids. Pressing ↓ slides that row up under the shrinking clock, and pressing ↓ again carries it off the top like any other row.
+- Fixed the focused row resting half off the bottom of the screen on 720p: the platform's own reveal for a focused child ignores the list's bottom inset here, so the matrix now positions the reveal itself and keeps every row inside the safe area.
 - Verified on an Android 5.1.1 TV box at 1080p and at a forced 720p, including a real reboot with Perch as the only home app.
 
 ## 0.1.0 - 2026-10-20

@@ -21,7 +21,8 @@ Most TV launchers are storefronts. Perch is a place to land: one calm screen, th
 
 - Large 24-hour clock and locale-aware date by default, or follow the system's 12/24-hour setting.
 - Compact first screen with five apps; ↓ expands to a 5-column, scrollable grid.
-- The clock is one shared element: expanding shrinks it and lifts it to the top while it stays centered, and the grid opens below it.
+- The clock is one shared element: expanding shrinks it and lifts it to the top while it stays centered.
+- The first screen's row of apps *is* the first row of the grid - one scrollable list, so ↓ slides it up under the clock and ↓ again carries it off the top like any other row.
 - ↑ on the first screen opens quick settings: network, Bluetooth, display, sound, accessibility, all settings, and Perch settings.
 - Long-press OK on any app to pin or unpin it. Up to five pinned apps move to the front and are marked with a small moss dot.
 - Text size presets (small, standard, large) apply to app labels, menus, and settings. The clock size is fixed.
@@ -207,7 +208,7 @@ App icons and app names shown in the screenshots belong to their respective appl
 
 **栖（Perch）** 是一个安静、离线、无广告的 Android TV 桌面。
 
-首屏只有大时钟、日期和一排应用；按 ↓ 展开全部应用（时钟是同一个视图连续缩小上移、始终居中，应用矩阵从它下方展开），按 ↑ 打开顶部快捷设置，长按 OK 可在最多 5 个范围内置顶应用，BACK 从列表回到大时钟。字号支持小、标准、大三档，时钟支持 24 小时或跟随系统，本机 IP 显示仅作为默认关闭的调试选项。
+首屏只有大时钟、日期和一排应用；按 ↓ 展开全部应用（首屏那一排就是矩阵的第一行：时钟连续缩小上移并始终居中，第一行随之升到它下方，再按 ↓ 会像其他行一样滚出画面），按 ↑ 打开顶部快捷设置，长按 OK 可在最多 5 个范围内置顶应用，BACK 从列表回到大时钟。字号支持小、标准、大三档，时钟支持 24 小时或跟随系统，本机 IP 显示仅作为默认关闭的调试选项。
 
 它不申请 INTERNET 权限，没有广告、遥测、推荐位和第三方 SDK；唯一权限是用于读取本机 IP 的 `ACCESS_NETWORK_STATE`。界面使用 5% 安全边距、3dp 焦点环、不低于 16sp 的文字和高对比度配色，并为每个应用提供单条无障碍描述。背景「苔阶」由 Canvas 渐变、四道山脊与细颗粒实时绘制，不打包任何图片资源，720p 到 8K 共用同一套比例坐标。
 

@@ -1,12 +1,12 @@
 package io.github.duanechen520.perch;
 
+import android.animation.ValueAnimator;
 import android.app.Activity;
 import android.content.ComponentName;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.content.res.Configuration;
-import android.graphics.Rect;
 import android.graphics.Typeface;
 import android.graphics.drawable.Drawable;
 import android.net.ConnectivityManager;
@@ -54,6 +54,9 @@ public class MainActivity extends Activity {
     private static final int HERO_EXPANDED_TOP_DP = 28;
     private static final int HERO_GRID_GAP_DP = 16;
     private static final int HERO_FALLBACK_HEIGHT_DP = 150;
+    private static final int TILE_ICON_DP = 80;
+    private static final int DOCK_BOTTOM_DP = 44;
+    private static final int SLIDE_MS = 220;
 
     private static final int QUICK_NETWORK = 1;
     private static final int QUICK_BLUETOOTH = 2;
@@ -66,19 +69,9 @@ public class MainActivity extends Activity {
     private final Handler handler = new Handler(Looper.getMainLooper());
     private final List<AppRepository.AppEntry> apps =
             new ArrayList<AppRepository.AppEntry>();
-    private final List<View> compactTiles = new ArrayList<View>();
-    private final List<View> fullTiles = new ArrayList<View>();
+    private final List<View> tiles = new ArrayList<View>();
     private final List<TextView> appLabels = new ArrayList<TextView>();
     private final List<TextView> sheetLabels = new ArrayList<TextView>();
-
-    private final Runnable hideCompactRow = new Runnable() {
-        @Override
-        public void run() {
-            if (expanded) {
-                compactRow.setVisibility(View.GONE);
-            }
-        }
-    };
 
     private final Runnable ticker = new Runnable() {
         @Override
@@ -97,16 +90,17 @@ public class MainActivity extends Activity {
 
     private FrameLayout root;
     private FrameLayout compactContainer;
-    private LinearLayout compactColumn;
     private LinearLayout heroClock;
-    private LinearLayout compactRow;
-    private LinearLayout fullLayer;
+    private Space leadSpace;
     private LinearLayout fullGrid;
+    private Space tailSpace;
     private ScrollView fullScroll;
     private LinearLayout sheet;
     private TextView heroTime;
     private TextView heroDate;
     private TextView ipCompact;
+    private ValueAnimator scrollAnimator;
+    private int leadHeight;
 
     private SharedPreferences prefs;
     private DateFormat timeFormat;
@@ -156,7 +150,7 @@ public class MainActivity extends Activity {
 
         View current = getCurrentFocus();
         if (current == null || !(current.getTag() instanceof String)) {
-            focusArea(expanded, focusedPackage);
+            focusArea(expanded);
         }
 
         handler.removeCallbacks(ticker);
@@ -204,7 +198,7 @@ public class MainActivity extends Activity {
         if (expanded) {
             setExpanded(false);
         } else {
-            focusArea(false, focusedPackage);
+            focusArea(false);
         }
     }
 
@@ -222,6 +216,20 @@ public class MainActivity extends Activity {
     }
 
     @Override
+    public boolean dispatchKeyEvent(KeyEvent event) {
+        // The dock row is a real row now, so the framework would happily move focus
+        // down it. Entering the matrix has to win before that focus search runs.
+        if (!expanded && !sheetOpen
+                && event.getKeyCode() == KeyEvent.KEYCODE_DPAD_DOWN
+                && event.getAction() == KeyEvent.ACTION_DOWN
+                && event.getRepeatCount() == 0) {
+            setExpanded(true);
+            return true;
+        }
+        return super.dispatchKeyEvent(event);
+    }
+
+    @Override
     public boolean onKeyDown(int keyCode, KeyEvent event) {
         if (sheetOpen) {
             if (keyCode == KeyEvent.KEYCODE_DPAD_DOWN) {
@@ -235,10 +243,6 @@ public class MainActivity extends Activity {
         }
 
         if (!expanded) {
-            if (keyCode == KeyEvent.KEYCODE_DPAD_DOWN) {
-                setExpanded(true);
-                return true;
-            }
             if (keyCode == KeyEvent.KEYCODE_DPAD_UP) {
                 if (event.getRepeatCount() == 0) {
                     openSheet();
@@ -248,36 +252,15 @@ public class MainActivity extends Activity {
             return super.onKeyDown(keyCode, event);
         }
 
-        int index = fullTiles.indexOf(getCurrentFocus());
-        if (index < 0) {
-            return super.onKeyDown(keyCode, event);
+        // Inside the matrix, left/right/down are plain focus navigation and the view
+        // tree already owns them. Only the first row has somewhere to go that is not
+        // another tile: back to the large clock.
+        int index = tiles.indexOf(getCurrentFocus());
+        if (keyCode == KeyEvent.KEYCODE_DPAD_UP && index >= 0 && index < COLUMNS) {
+            setExpanded(false);
+            return true;
         }
-        switch (keyCode) {
-            case KeyEvent.KEYCODE_DPAD_LEFT:
-                if (index % COLUMNS > 0) {
-                    focusFull(index - 1);
-                }
-                return true;
-            case KeyEvent.KEYCODE_DPAD_RIGHT:
-                if (index % COLUMNS < COLUMNS - 1 && index + 1 < fullTiles.size()) {
-                    focusFull(index + 1);
-                }
-                return true;
-            case KeyEvent.KEYCODE_DPAD_UP:
-                if (index < COLUMNS) {
-                    setExpanded(false);
-                } else {
-                    focusFull(index - COLUMNS);
-                }
-                return true;
-            case KeyEvent.KEYCODE_DPAD_DOWN:
-                if (index + COLUMNS < fullTiles.size()) {
-                    focusFull(index + COLUMNS);
-                }
-                return true;
-            default:
-                return super.onKeyDown(keyCode, event);
-        }
+        return super.onKeyDown(keyCode, event);
     }
 
     private void buildUi() {
@@ -291,9 +274,20 @@ public class MainActivity extends Activity {
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.MATCH_PARENT));
 
+        buildGrid();
         buildCompact();
-        buildExpanded();
         buildSheet();
+
+        heroClock.addOnLayoutChangeListener(new View.OnLayoutChangeListener() {
+            @Override
+            public void onLayoutChange(View view, int left, int top, int right, int bottom,
+                    int oldLeft, int oldTop, int oldRight, int oldBottom) {
+                if (bottom - top != oldBottom - oldTop) {
+                    applyHeaderInset();
+                    layoutLead();
+                }
+            }
+        });
     }
 
     private void buildCompact() {
@@ -302,21 +296,17 @@ public class MainActivity extends Activity {
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.MATCH_PARENT));
 
-        compactColumn = new LinearLayout(this);
-        compactColumn.setOrientation(LinearLayout.VERTICAL);
-        compactColumn.setPadding(dp(64), dp(36), dp(64), dp(44));
-        compactContainer.addView(compactColumn, new FrameLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT,
-                ViewGroup.LayoutParams.MATCH_PARENT));
-
         heroClock = new LinearLayout(this);
         heroClock.setOrientation(LinearLayout.VERTICAL);
         heroClock.setGravity(Gravity.CENTER_HORIZONTAL);
-        LinearLayout.LayoutParams heroParams = new LinearLayout.LayoutParams(
+        FrameLayout.LayoutParams heroParams = new FrameLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
-                ViewGroup.LayoutParams.WRAP_CONTENT);
-        heroParams.topMargin = dp(78);
-        compactColumn.addView(heroClock, heroParams);
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+                Gravity.TOP | Gravity.CENTER_HORIZONTAL);
+        heroParams.topMargin = dp(114);
+        heroParams.leftMargin = dp(64);
+        heroParams.rightMargin = dp(64);
+        compactContainer.addView(heroClock, heroParams);
 
         heroTime = new TextView(this);
         heroTime.setGravity(Gravity.CENTER);
@@ -342,18 +332,6 @@ public class MainActivity extends Activity {
         heroDateParams.topMargin = dp(10);
         heroClock.addView(heroDate, heroDateParams);
 
-        Space spacer = new Space(this);
-        compactColumn.addView(spacer, new LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f));
-
-        compactRow = new LinearLayout(this);
-        compactRow.setOrientation(LinearLayout.HORIZONTAL);
-        compactRow.setGravity(Gravity.CENTER);
-        compactRow.setWeightSum(COLUMNS);
-        compactColumn.addView(compactRow, new LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT,
-                ViewGroup.LayoutParams.WRAP_CONTENT));
-
         ipCompact = new TextView(this);
         ipCompact.setTextSize(TypeScale.aux(this));
         ipCompact.setTextColor(color(R.color.text_secondary));
@@ -366,29 +344,30 @@ public class MainActivity extends Activity {
         compactContainer.addView(ipCompact, ipParams);
     }
 
-    private void buildExpanded() {
-        fullLayer = new LinearLayout(this);
-        fullLayer.setOrientation(LinearLayout.VERTICAL);
-        fullLayer.setAlpha(0f);
-        fullLayer.setVisibility(View.GONE);
-        applyGridOffset();
-        root.addView(fullLayer, new FrameLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT,
-                ViewGroup.LayoutParams.MATCH_PARENT));
-
+    /** One scrollable matrix. The first screen is this list resting at the bottom. */
+    private void buildGrid() {
         fullScroll = new ScrollView(this);
         fullScroll.setFillViewport(true);
         fullScroll.setVerticalScrollBarEnabled(false);
         fullScroll.setOverScrollMode(View.OVER_SCROLL_NEVER);
-        fullLayer.addView(fullScroll, new LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f));
+        root.addView(fullScroll, new FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.MATCH_PARENT));
 
         fullGrid = new LinearLayout(this);
         fullGrid.setOrientation(LinearLayout.VERTICAL);
-        fullGrid.setPadding(dp(64), dp(16), dp(64), dp(48));
+        fullGrid.setPadding(dp(64), 0, dp(64), dp(48));
         fullScroll.addView(fullGrid, new ScrollView.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT));
+
+        leadSpace = new Space(this);
+        fullGrid.addView(leadSpace, new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, 0));
+
+        tailSpace = new Space(this);
+        fullGrid.addView(tailSpace, new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, 0));
     }
 
     private void buildSheet() {
@@ -480,63 +459,84 @@ public class MainActivity extends Activity {
             hideSheetImmediately(false);
         }
         cancelAnimations();
-        handler.removeCallbacks(hideCompactRow);
 
-        compactRow.removeAllViews();
-        fullGrid.removeAllViews();
-        compactTiles.clear();
-        fullTiles.clear();
+        fullGrid.removeViews(1, fullGrid.getChildCount() - 1);
+        tiles.clear();
         appLabels.clear();
 
-        int compactCount = Math.min(COLUMNS, apps.size());
-        for (int i = 0; i < compactCount; i++) {
-            View tile = createTile(apps.get(i), true);
-            LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
-                    0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f);
-            params.setMargins(dp(6), 0, dp(6), 0);
-            compactRow.addView(tile, params);
-            compactTiles.add(tile);
-        }
-
-        for (int start = 0; start < apps.size(); start += COLUMNS) {
-            LinearLayout row = new LinearLayout(this);
-            row.setOrientation(LinearLayout.HORIZONTAL);
-            for (int column = 0; column < COLUMNS; column++) {
-                int index = start + column;
-                if (index < apps.size()) {
-                    View tile = createTile(apps.get(index), false);
-                    LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
-                            0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f);
-                    params.setMargins(dp(6), dp(6), dp(6), dp(6));
-                    row.addView(tile, params);
-                    fullTiles.add(tile);
-                } else {
-                    Space filler = new Space(this);
-                    LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
-                            0, dp(168), 1f);
-                    params.setMargins(dp(6), dp(6), dp(6), dp(6));
-                    row.addView(filler, params);
-                }
+        LinearLayout row = null;
+        for (int index = 0; index < apps.size(); index++) {
+            if (index % COLUMNS == 0) {
+                row = newGridRow();
             }
-            fullGrid.addView(row, new LinearLayout.LayoutParams(
-                    ViewGroup.LayoutParams.MATCH_PARENT,
-                    ViewGroup.LayoutParams.WRAP_CONTENT));
+            View tile = createTile(apps.get(index));
+            row.addView(tile, tileParams());
+            tiles.add(tile);
         }
+        fullGrid.addView(tailSpace);
 
-        compactContainer.setVisibility(View.VISIBLE);
-        compactRow.setVisibility(expanded ? View.GONE : View.VISIBLE);
-        fullLayer.setVisibility(expanded ? View.VISIBLE : View.GONE);
-        fullLayer.setAlpha(expanded ? 1f : 0f);
-        if (expanded) {
-            applyGridOffset();
-            setCompactCollapsedVisuals();
-        } else {
-            resetCompactVisuals();
-        }
-        focusArea(expanded, focusedPackage);
+        layoutLead();
+        fullScroll.scrollTo(0, expanded ? leadHeight : 0);
+        focusArea(expanded);
     }
 
-    private View createTile(final AppRepository.AppEntry app, boolean compact) {
+    private LinearLayout.LayoutParams tileParams() {
+        LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
+                0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f);
+        params.setMargins(dp(6), dp(6), dp(6), dp(6));
+        return params;
+    }
+
+    private LinearLayout newGridRow() {
+        LinearLayout row = new LinearLayout(this);
+        row.setOrientation(LinearLayout.HORIZONTAL);
+        row.setGravity(Gravity.CENTER);
+        row.setWeightSum(COLUMNS);
+        fullGrid.addView(row, new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT));
+        return row;
+    }
+
+    /** The blank above row one is what lets the matrix rest with its first row at the bottom. */
+    private void layoutLead() {
+        if (fullScroll.getHeight() == 0 || tiles.isEmpty()) {
+            return;
+        }
+        View parent = (View) tiles.get(0).getParent();
+        int rowHeight = parent != null && parent.getHeight() > 0 ? parent.getHeight() : dp(180);
+        int viewport = fullScroll.getHeight()
+                - fullScroll.getPaddingTop() - fullScroll.getPaddingBottom();
+        leadHeight = Math.max(0, viewport - rowHeight);
+        setSpacerHeight(leadSpace, leadHeight);
+        // The tail keeps the lead inside the scroll range even when the grid is
+        // too short to fill the screen; focus never reaches it.
+        setSpacerHeight(tailSpace, viewport);
+    }
+
+    private void setSpacerHeight(View spacer, int height) {
+        ViewGroup.LayoutParams params = spacer.getLayoutParams();
+        if (params != null && params.height != height) {
+            params.height = height;
+            spacer.setLayoutParams(params);
+        }
+    }
+
+    /** The header inset clips rows away; the bottom one keeps the last row off the bezel. */
+    private void applyHeaderInset() {
+        if (fullScroll != null) {
+            fullScroll.setPadding(0, headerBottom(), 0, dp(DOCK_BOTTOM_DP));
+        }
+    }
+
+    private int headerBottom() {
+        float height = heroClock != null && heroClock.getHeight() > 0
+                ? heroClock.getHeight() : dp(HERO_FALLBACK_HEIGHT_DP);
+        return Math.round(dp(HERO_EXPANDED_TOP_DP) + height * HERO_EXPANDED_SCALE)
+                + dp(HERO_GRID_GAP_DP);
+    }
+
+    private View createTile(final AppRepository.AppEntry app) {
         LinearLayout tile = new LinearLayout(this);
         tile.setOrientation(LinearLayout.VERTICAL);
         tile.setGravity(Gravity.CENTER);
@@ -544,9 +544,7 @@ public class MainActivity extends Activity {
         tile.setClickable(true);
         tile.setBackgroundResource(R.drawable.app_tile_bg);
         tile.setPadding(dp(10), dp(10), dp(10), dp(10));
-        if (!compact) {
-            tile.setMinimumHeight(dp(168));
-        }
+        tile.setMinimumHeight(dp(168));
         tile.setTag(app.packageName);
         tile.setContentDescription(app.pinned
                 ? getString(R.string.a11y_pinned_app, app.label)
@@ -554,7 +552,7 @@ public class MainActivity extends Activity {
 
         FrameLayout iconFrame = new FrameLayout(this);
         LinearLayout.LayoutParams iconFrameParams = new LinearLayout.LayoutParams(
-                dp(compact ? 88 : 72), dp(compact ? 88 : 72));
+                dp(TILE_ICON_DP), dp(TILE_ICON_DP));
         iconFrameParams.gravity = Gravity.CENTER_HORIZONTAL;
         tile.addView(iconFrame, iconFrameParams);
 
@@ -617,7 +615,7 @@ public class MainActivity extends Activity {
             public void onFocusChange(View view, boolean hasFocus) {
                 if (hasFocus) {
                     focusedPackage = app.packageName;
-                    ensureVisible(view);
+                    revealTile(view);
                 }
                 float scale = hasFocus ? 1.04f : 1f;
                 if (animationsEnabled()) {
@@ -693,6 +691,7 @@ public class MainActivity extends Activity {
         };
     }
 
+    /** Entering the matrix is a scroll: row one rises to the header and can later scroll away. */
     private void setExpanded(boolean expand) {
         if (expanded == expand) {
             return;
@@ -702,51 +701,31 @@ public class MainActivity extends Activity {
         }
         expanded = expand;
         cancelAnimations();
-        handler.removeCallbacks(hideCompactRow);
+        final int start = fullScroll.getScrollY();
+        layoutLead();
 
-        final boolean animate = animationsEnabled();
-        if (expand) {
-            applyGridOffset();
-            compactRow.setVisibility(View.VISIBLE);
-            fullLayer.setVisibility(View.VISIBLE);
-            fullLayer.setAlpha(animate ? 0f : 1f);
-            if (animate) {
-                heroClock.animate().scaleX(HERO_EXPANDED_SCALE).scaleY(HERO_EXPANDED_SCALE)
-                        .translationY(heroExpandedTranslationY())
-                        .setDuration(220L).start();
-                compactRow.animate().alpha(0f).translationY(dp(24))
-                        .setDuration(180L).start();
-                fullLayer.animate().alpha(1f)
-                        .setStartDelay(60L).setDuration(220L).start();
-            } else {
-                setCompactCollapsedVisuals();
-            }
-            handler.postDelayed(hideCompactRow, animate ? 240L : 0L);
-            fullScroll.scrollTo(0, 0);
-            focusArea(true, focusedPackage);
+        final float scale = expand ? HERO_EXPANDED_SCALE : 1f;
+        final float lift = expand ? heroExpandedTranslationY() : 0f;
+        final int target = expand ? leadHeight : 0;
+        if (animationsEnabled()) {
+            heroClock.animate().scaleX(scale).scaleY(scale).translationY(lift)
+                    .setDuration(SLIDE_MS).start();
+            scrollAnimator = ValueAnimator.ofInt(start, target);
+            scrollAnimator.setDuration(SLIDE_MS);
+            scrollAnimator.addUpdateListener(new ValueAnimator.AnimatorUpdateListener() {
+                @Override
+                public void onAnimationUpdate(ValueAnimator animator) {
+                    fullScroll.scrollTo(0, (Integer) animator.getAnimatedValue());
+                }
+            });
+            scrollAnimator.start();
         } else {
-            compactRow.setVisibility(View.VISIBLE);
-            if (animate) {
-                heroClock.animate().scaleX(1f).scaleY(1f)
-                        .translationY(0f).setDuration(220L).start();
-                compactRow.animate().alpha(1f).translationY(0f)
-                        .setDuration(220L).start();
-                fullLayer.animate().alpha(0f).setDuration(180L)
-                        .withEndAction(new Runnable() {
-                            @Override
-                            public void run() {
-                                if (!expanded) {
-                                    fullLayer.setVisibility(View.GONE);
-                                }
-                            }
-                        }).start();
-            } else {
-                resetCompactVisuals();
-                fullLayer.setVisibility(View.GONE);
-                fullLayer.setAlpha(0f);
-            }
-            focusArea(false, focusedPackage);
+            heroClock.setScaleX(scale);
+            heroClock.setScaleY(scale);
+            heroClock.setTranslationY(lift);
+            fullScroll.scrollTo(0, target);
         }
+        focusArea(expanded);
     }
 
     private void openSheet() {
@@ -805,7 +784,7 @@ public class MainActivity extends Activity {
             sheet.setTranslationY(0f);
         }
         if (restoreFocus) {
-            focusArea(expanded, focusedPackage);
+            focusArea(expanded);
         }
     }
 
@@ -821,7 +800,7 @@ public class MainActivity extends Activity {
             sheet.setVisibility(View.GONE);
         }
         if (restoreFocus) {
-            focusArea(expanded, focusedPackage);
+            focusArea(expanded);
         }
     }
 
@@ -830,7 +809,7 @@ public class MainActivity extends Activity {
                 ? View.IMPORTANT_FOR_ACCESSIBILITY_NO_HIDE_DESCENDANTS
                 : View.IMPORTANT_FOR_ACCESSIBILITY_AUTO;
         compactContainer.setImportantForAccessibility(mode);
-        fullLayer.setImportantForAccessibility(mode);
+        fullScroll.setImportantForAccessibility(mode);
     }
 
     private void openQuick(int action) {
@@ -897,18 +876,37 @@ public class MainActivity extends Activity {
                 Toast.LENGTH_SHORT).show();
     }
 
-    private void focusFull(int index) {
-        if (index < 0 || index >= fullTiles.size()) {
+    /**
+     * The platform reveals a focused tile against the raw view edge and ignores the
+     * list's bottom inset, which leaves a row under the safe area. Take over that
+     * scroll and aim it at the padded viewport instead.
+     */
+    private void revealTile(View tile) {
+        if (fullScroll.getHeight() == 0 || !(tile.getParent() instanceof View)) {
             return;
         }
-        final View target = fullTiles.get(index);
-        target.requestFocus();
-        ensureVisible(target);
+        View row = (View) tile.getParent();
+        int viewport = fullScroll.getHeight()
+                - fullScroll.getPaddingTop() - fullScroll.getPaddingBottom();
+        int top = row.getTop() + tile.getTop();
+        int bottom = row.getTop() + tile.getBottom();
+        int scroll = fullScroll.getScrollY();
+        int target = scroll;
+        if (bottom > scroll + viewport) {
+            target = bottom - viewport;
+        } else if (top < scroll) {
+            target = top;
+        }
+        if (target != scroll) {
+            // smoothScrollTo, not scrollTo: the platform has already started its own
+            // reveal and only replacing its scroller gets the last word.
+            fullScroll.smoothScrollTo(0, target);
+        }
     }
 
-    private void focusArea(boolean full, String preferredPackage) {
-        List<View> tiles = full ? fullTiles : compactTiles;
-        if (tiles.isEmpty()) {
+    private void focusArea(boolean full) {
+        int limit = full ? tiles.size() : Math.min(COLUMNS, tiles.size());
+        if (limit == 0) {
             root.post(new Runnable() {
                 @Override
                 public void run() {
@@ -917,7 +915,7 @@ public class MainActivity extends Activity {
             });
             return;
         }
-        View target = findTile(tiles, preferredPackage);
+        View target = findTile(focusedPackage, limit);
         if (target == null) {
             target = tiles.get(0);
         }
@@ -926,18 +924,17 @@ public class MainActivity extends Activity {
             @Override
             public void run() {
                 finalTarget.requestFocus();
-                ensureVisible(finalTarget);
             }
         });
     }
 
-    private View findTile(List<View> tiles, String packageName) {
+    private View findTile(String packageName, int limit) {
         if (packageName == null) {
             return null;
         }
-        for (View tile : tiles) {
-            if (packageName.equals(tile.getTag())) {
-                return tile;
+        for (int i = 0; i < limit; i++) {
+            if (packageName.equals(tiles.get(i).getTag())) {
+                return tiles.get(i);
             }
         }
         return null;
@@ -955,43 +952,13 @@ public class MainActivity extends Activity {
         return null;
     }
 
-    private void ensureVisible(final View view) {
-        view.post(new Runnable() {
-            @Override
-            public void run() {
-                Rect rect = new Rect(0, 0, view.getWidth(), view.getHeight());
-                int inset = dp(10);
-                rect.inset(-inset, -inset);
-                view.requestRectangleOnScreen(rect, true);
-            }
-        });
-    }
-
     private void cancelAnimations() {
-        compactContainer.animate().cancel();
         heroClock.animate().cancel();
-        compactRow.animate().cancel();
-        fullLayer.animate().cancel();
+        if (scrollAnimator != null) {
+            scrollAnimator.cancel();
+            scrollAnimator = null;
+        }
         sheet.animate().cancel();
-    }
-
-    private void resetCompactVisuals() {
-        heroClock.setScaleX(1f);
-        heroClock.setScaleY(1f);
-        heroClock.setAlpha(1f);
-        heroClock.setTranslationY(0f);
-        compactRow.setVisibility(View.VISIBLE);
-        compactRow.setAlpha(1f);
-        compactRow.setTranslationY(0f);
-    }
-
-    private void setCompactCollapsedVisuals() {
-        heroClock.setScaleX(HERO_EXPANDED_SCALE);
-        heroClock.setScaleY(HERO_EXPANDED_SCALE);
-        heroClock.setAlpha(1f);
-        heroClock.setTranslationY(heroExpandedTranslationY());
-        compactRow.setAlpha(0f);
-        compactRow.setTranslationY(dp(24));
     }
 
     /** Keeps the clock centered while it shrinks toward the top of the screen. */
@@ -1000,17 +967,6 @@ public class MainActivity extends Activity {
                 ? heroClock.getHeight() : dp(HERO_FALLBACK_HEIGHT_DP);
         return dp(HERO_EXPANDED_TOP_DP) - heroClock.getTop()
                 - height * (1f - HERO_EXPANDED_SCALE) / 2f;
-    }
-
-    /** The grid starts below the shrunk clock so scrolled tiles never run under it. */
-    private void applyGridOffset() {
-        if (fullLayer == null) {
-            return;
-        }
-        float height = heroClock != null && heroClock.getHeight() > 0
-                ? heroClock.getHeight() : dp(HERO_FALLBACK_HEIGHT_DP);
-        int offset = Math.round(dp(HERO_EXPANDED_TOP_DP) + height * HERO_EXPANDED_SCALE);
-        fullLayer.setPadding(0, offset + dp(HERO_GRID_GAP_DP), 0, 0);
     }
 
     private void applyTypeScale() {
@@ -1027,9 +983,11 @@ public class MainActivity extends Activity {
         heroClock.post(new Runnable() {
             @Override
             public void run() {
-                applyGridOffset();
+                applyHeaderInset();
+                layoutLead();
                 if (expanded) {
                     heroClock.setTranslationY(heroExpandedTranslationY());
+                    fullScroll.scrollTo(0, leadHeight);
                 }
             }
         });
