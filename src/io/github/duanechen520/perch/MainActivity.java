@@ -50,6 +50,10 @@ public class MainActivity extends Activity {
     private static final long IP_REFRESH_MS = 15000L;
     private static final long LONG_PRESS_MS = 550L;
     private static final int COLUMNS = 5;
+    private static final float HERO_EXPANDED_SCALE = 0.62f;
+    private static final int HERO_EXPANDED_TOP_DP = 28;
+    private static final int HERO_GRID_GAP_DP = 16;
+    private static final int HERO_FALLBACK_HEIGHT_DP = 150;
 
     private static final int QUICK_NETWORK = 1;
     private static final int QUICK_BLUETOOTH = 2;
@@ -67,11 +71,11 @@ public class MainActivity extends Activity {
     private final List<TextView> appLabels = new ArrayList<TextView>();
     private final List<TextView> sheetLabels = new ArrayList<TextView>();
 
-    private final Runnable hideCompact = new Runnable() {
+    private final Runnable hideCompactRow = new Runnable() {
         @Override
         public void run() {
             if (expanded) {
-                compactContainer.setVisibility(View.GONE);
+                compactRow.setVisibility(View.GONE);
             }
         }
     };
@@ -102,10 +106,7 @@ public class MainActivity extends Activity {
     private LinearLayout sheet;
     private TextView heroTime;
     private TextView heroDate;
-    private TextView smallTime;
-    private TextView smallDate;
     private TextView ipCompact;
-    private TextView ipFull;
 
     private SharedPreferences prefs;
     private DateFormat timeFormat;
@@ -370,48 +371,10 @@ public class MainActivity extends Activity {
         fullLayer.setOrientation(LinearLayout.VERTICAL);
         fullLayer.setAlpha(0f);
         fullLayer.setVisibility(View.GONE);
+        applyGridOffset();
         root.addView(fullLayer, new FrameLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.MATCH_PARENT));
-
-        LinearLayout topBar = new LinearLayout(this);
-        topBar.setOrientation(LinearLayout.HORIZONTAL);
-        topBar.setGravity(Gravity.CENTER_VERTICAL);
-        topBar.setPadding(dp(64), dp(40), dp(64), dp(4));
-        fullLayer.addView(topBar, new LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT,
-                ViewGroup.LayoutParams.WRAP_CONTENT));
-
-        smallTime = new TextView(this);
-        smallTime.setTextColor(color(R.color.text_primary));
-        smallTime.setTextSize(TypeScale.topClock(this));
-        smallTime.setTypeface(Typeface.create("sans-serif-light", Typeface.NORMAL));
-        smallTime.setIncludeFontPadding(false);
-        topBar.addView(smallTime, new LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.WRAP_CONTENT,
-                ViewGroup.LayoutParams.WRAP_CONTENT));
-
-        smallDate = new TextView(this);
-        smallDate.setTextColor(color(R.color.text_secondary));
-        smallDate.setTextSize(TypeScale.aux(this));
-        smallDate.setIncludeFontPadding(false);
-        smallDate.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
-        LinearLayout.LayoutParams smallDateParams = new LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.WRAP_CONTENT,
-                ViewGroup.LayoutParams.WRAP_CONTENT);
-        smallDateParams.leftMargin = dp(16);
-        topBar.addView(smallDate, smallDateParams);
-
-        Space barSpacer = new Space(this);
-        topBar.addView(barSpacer, new LinearLayout.LayoutParams(0, 1, 1f));
-
-        ipFull = new TextView(this);
-        ipFull.setTextSize(TypeScale.aux(this));
-        ipFull.setTextColor(color(R.color.text_secondary));
-        ipFull.setVisibility(View.GONE);
-        topBar.addView(ipFull, new LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.WRAP_CONTENT,
-                ViewGroup.LayoutParams.WRAP_CONTENT));
 
         fullScroll = new ScrollView(this);
         fullScroll.setFillViewport(true);
@@ -517,7 +480,7 @@ public class MainActivity extends Activity {
             hideSheetImmediately(false);
         }
         cancelAnimations();
-        handler.removeCallbacks(hideCompact);
+        handler.removeCallbacks(hideCompactRow);
 
         compactRow.removeAllViews();
         fullGrid.removeAllViews();
@@ -560,11 +523,12 @@ public class MainActivity extends Activity {
                     ViewGroup.LayoutParams.WRAP_CONTENT));
         }
 
-        compactContainer.setVisibility(expanded ? View.GONE : View.VISIBLE);
-        compactContainer.setAlpha(1f);
+        compactContainer.setVisibility(View.VISIBLE);
+        compactRow.setVisibility(expanded ? View.GONE : View.VISIBLE);
         fullLayer.setVisibility(expanded ? View.VISIBLE : View.GONE);
         fullLayer.setAlpha(expanded ? 1f : 0f);
         if (expanded) {
+            applyGridOffset();
             setCompactCollapsedVisuals();
         } else {
             resetCompactVisuals();
@@ -738,16 +702,17 @@ public class MainActivity extends Activity {
         }
         expanded = expand;
         cancelAnimations();
-        handler.removeCallbacks(hideCompact);
+        handler.removeCallbacks(hideCompactRow);
 
         final boolean animate = animationsEnabled();
         if (expand) {
+            applyGridOffset();
+            compactRow.setVisibility(View.VISIBLE);
             fullLayer.setVisibility(View.VISIBLE);
             fullLayer.setAlpha(animate ? 0f : 1f);
-            compactContainer.setVisibility(View.VISIBLE);
             if (animate) {
-                heroClock.animate().scaleX(0.62f).scaleY(0.62f)
-                        .alpha(0f).translationY(-dp(44))
+                heroClock.animate().scaleX(HERO_EXPANDED_SCALE).scaleY(HERO_EXPANDED_SCALE)
+                        .translationY(heroExpandedTranslationY())
                         .setDuration(220L).start();
                 compactRow.animate().alpha(0f).translationY(dp(24))
                         .setDuration(180L).start();
@@ -756,13 +721,13 @@ public class MainActivity extends Activity {
             } else {
                 setCompactCollapsedVisuals();
             }
-            handler.postDelayed(hideCompact, animate ? 240L : 0L);
+            handler.postDelayed(hideCompactRow, animate ? 240L : 0L);
             fullScroll.scrollTo(0, 0);
             focusArea(true, focusedPackage);
         } else {
-            compactContainer.setVisibility(View.VISIBLE);
+            compactRow.setVisibility(View.VISIBLE);
             if (animate) {
-                heroClock.animate().scaleX(1f).scaleY(1f).alpha(1f)
+                heroClock.animate().scaleX(1f).scaleY(1f)
                         .translationY(0f).setDuration(220L).start();
                 compactRow.animate().alpha(1f).translationY(0f)
                         .setDuration(220L).start();
@@ -1015,26 +980,43 @@ public class MainActivity extends Activity {
         heroClock.setScaleY(1f);
         heroClock.setAlpha(1f);
         heroClock.setTranslationY(0f);
+        compactRow.setVisibility(View.VISIBLE);
         compactRow.setAlpha(1f);
         compactRow.setTranslationY(0f);
     }
 
     private void setCompactCollapsedVisuals() {
-        heroClock.setScaleX(0.62f);
-        heroClock.setScaleY(0.62f);
-        heroClock.setAlpha(0f);
-        heroClock.setTranslationY(-dp(44));
+        heroClock.setScaleX(HERO_EXPANDED_SCALE);
+        heroClock.setScaleY(HERO_EXPANDED_SCALE);
+        heroClock.setAlpha(1f);
+        heroClock.setTranslationY(heroExpandedTranslationY());
         compactRow.setAlpha(0f);
         compactRow.setTranslationY(dp(24));
+    }
+
+    /** Keeps the clock centered while it shrinks toward the top of the screen. */
+    private float heroExpandedTranslationY() {
+        float height = heroClock.getHeight() > 0
+                ? heroClock.getHeight() : dp(HERO_FALLBACK_HEIGHT_DP);
+        return dp(HERO_EXPANDED_TOP_DP) - heroClock.getTop()
+                - height * (1f - HERO_EXPANDED_SCALE) / 2f;
+    }
+
+    /** The grid starts below the shrunk clock so scrolled tiles never run under it. */
+    private void applyGridOffset() {
+        if (fullLayer == null) {
+            return;
+        }
+        float height = heroClock != null && heroClock.getHeight() > 0
+                ? heroClock.getHeight() : dp(HERO_FALLBACK_HEIGHT_DP);
+        int offset = Math.round(dp(HERO_EXPANDED_TOP_DP) + height * HERO_EXPANDED_SCALE);
+        fullLayer.setPadding(0, offset + dp(HERO_GRID_GAP_DP), 0, 0);
     }
 
     private void applyTypeScale() {
         heroTime.setTextSize(TypeScale.heroClock(this));
         heroDate.setTextSize(TypeScale.heroDate(this));
-        smallTime.setTextSize(TypeScale.topClock(this));
-        smallDate.setTextSize(TypeScale.aux(this));
         ipCompact.setTextSize(TypeScale.aux(this));
-        ipFull.setTextSize(TypeScale.aux(this));
         for (TextView label : appLabels) {
             label.setTextSize(TypeScale.appLabel(this));
         }
@@ -1042,6 +1024,15 @@ public class MainActivity extends Activity {
             label.setTextSize(TypeScale.sheet(this));
         }
         root.requestLayout();
+        heroClock.post(new Runnable() {
+            @Override
+            public void run() {
+                applyGridOffset();
+                if (expanded) {
+                    heroClock.setTranslationY(heroExpandedTranslationY());
+                }
+            }
+        });
     }
 
     private void updateTimeFormats() {
@@ -1068,21 +1059,17 @@ public class MainActivity extends Activity {
         String date = dateFormat.format(now);
         if (!time.contentEquals(heroTime.getText())) {
             heroTime.setText(time);
-            smallTime.setText(time);
         }
         if (!date.contentEquals(heroDate.getText())) {
             heroDate.setText(date);
-            smallDate.setText(date);
         }
         String description = getString(R.string.a11y_clock, time, date);
         heroClock.setContentDescription(description);
-        smallTime.setContentDescription(description);
     }
 
     private void updateIpVisibility() {
         int visibility = showIp ? View.VISIBLE : View.GONE;
         ipCompact.setVisibility(visibility);
-        ipFull.setVisibility(visibility);
         if (showIp) {
             updateIp();
         } else {
@@ -1103,7 +1090,6 @@ public class MainActivity extends Activity {
                 ? getString(R.string.ip_none)
                 : getString(R.string.ip_connected, ip);
         ipCompact.setText(text);
-        ipFull.setText(text);
     }
 
     private String findLanIpv4() {
