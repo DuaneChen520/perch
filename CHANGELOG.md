@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.2.0 - 2026-10-20
+
+- Added the 苔阶 backdrop: a warm charcoal gradient, one soft light above the clock, four receding ridges, and a runtime-generated grain that stops dark gradients from banding. It is drawn with `Canvas` on the home screen, the quick-settings layer, and the settings screen, so no image asset ships and the same relative coordinates cover 720p through 8K.
+- Fixed the optional IP label sitting inside the overscan area; it now clears the 5% safe margin it already claims.
+- Fixed a focused option in settings losing its selected appearance, which made the current text size and clock format unreadable while navigating.
+- Fixed the compact app row stretching when fewer than five apps are installed; the row now holds five equal slots.
+- App tiles now reserve two label lines and center their content, so the focus ring hugs the tile instead of trailing empty space.
+- The clock in the all-apps header now follows the text-size preset.
+- Verified on an Android 5.1.1 TV box at 1080p and at a forced 720p, including a real reboot with Perch as the only home app.
+
 ## 0.1.0 - 2026-10-20
 
 - Initial public release of 栖 Perch, package `io.github.duanechen520.perch`.

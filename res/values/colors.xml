@@ -9,6 +9,10 @@
     <color name="accent_dim">#7E8F6B</color>
     <color name="hairline">#33F3EEE5</color>
     <color name="icon_bg">#2A2823</color>
+    <color name="wall_top">#211F1A</color>
+    <color name="wall_mid">#191713</color>
+    <color name="wall_bottom">#100F0C</color>
+    <color name="selected_fill">#14A6B98D</color>
     <color name="status_ok">#A6B98D</color>
     <color name="status_warn">#DDBB84</color>
     <color name="transparent">#00000000</color>

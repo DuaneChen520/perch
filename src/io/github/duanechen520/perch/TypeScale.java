@@ -72,6 +72,17 @@ final class TypeScale {
         return appLabel(context);
     }
 
+    static float topClock(Context context) {
+        String preset = get(context);
+        if (SMALL.equals(preset)) {
+            return 26f;
+        }
+        if (LARGE.equals(preset)) {
+            return 34f;
+        }
+        return 30f;
+    }
+
     static float heroClock(Context context) {
         int heightDp = context.getResources().getConfiguration().screenHeightDp;
         return heightDp < 650 ? 80f : 96f;

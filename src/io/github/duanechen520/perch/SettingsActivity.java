@@ -128,6 +128,10 @@ public class SettingsActivity extends Activity {
         root.setBackgroundColor(color(R.color.bg));
         setContentView(root);
 
+        root.addView(new WallpaperBackground(this), new FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.MATCH_PARENT));
+
         ScrollView scroll = new ScrollView(this);
         scroll.setFillViewport(true);
         scroll.setVerticalScrollBarEnabled(false);

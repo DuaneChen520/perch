@@ -286,6 +286,10 @@ public class MainActivity extends Activity {
         root.setFocusableInTouchMode(true);
         setContentView(root);
 
+        root.addView(new WallpaperBackground(this), new FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.MATCH_PARENT));
+
         buildCompact();
         buildExpanded();
         buildSheet();
@@ -293,7 +297,6 @@ public class MainActivity extends Activity {
 
     private void buildCompact() {
         compactContainer = new FrameLayout(this);
-        compactContainer.setBackgroundColor(color(R.color.bg));
         root.addView(compactContainer, new FrameLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.MATCH_PARENT));
@@ -345,6 +348,7 @@ public class MainActivity extends Activity {
         compactRow = new LinearLayout(this);
         compactRow.setOrientation(LinearLayout.HORIZONTAL);
         compactRow.setGravity(Gravity.CENTER);
+        compactRow.setWeightSum(COLUMNS);
         compactColumn.addView(compactRow, new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT));
@@ -357,14 +361,13 @@ public class MainActivity extends Activity {
                 ViewGroup.LayoutParams.WRAP_CONTENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT,
                 Gravity.BOTTOM | Gravity.END);
-        ipParams.setMargins(0, 0, dp(64), dp(16));
+        ipParams.setMargins(0, 0, dp(64), dp(44));
         compactContainer.addView(ipCompact, ipParams);
     }
 
     private void buildExpanded() {
         fullLayer = new LinearLayout(this);
         fullLayer.setOrientation(LinearLayout.VERTICAL);
-        fullLayer.setBackgroundColor(color(R.color.bg));
         fullLayer.setAlpha(0f);
         fullLayer.setVisibility(View.GONE);
         root.addView(fullLayer, new FrameLayout.LayoutParams(
@@ -381,7 +384,7 @@ public class MainActivity extends Activity {
 
         smallTime = new TextView(this);
         smallTime.setTextColor(color(R.color.text_primary));
-        smallTime.setTextSize(30f);
+        smallTime.setTextSize(TypeScale.topClock(this));
         smallTime.setTypeface(Typeface.create("sans-serif-light", Typeface.NORMAL));
         smallTime.setIncludeFontPadding(false);
         topBar.addView(smallTime, new LinearLayout.LayoutParams(
@@ -540,7 +543,7 @@ public class MainActivity extends Activity {
                 if (index < apps.size()) {
                     View tile = createTile(apps.get(index), false);
                     LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
-                            0, dp(168), 1f);
+                            0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f);
                     params.setMargins(dp(6), dp(6), dp(6), dp(6));
                     row.addView(tile, params);
                     fullTiles.add(tile);
@@ -572,11 +575,14 @@ public class MainActivity extends Activity {
     private View createTile(final AppRepository.AppEntry app, boolean compact) {
         LinearLayout tile = new LinearLayout(this);
         tile.setOrientation(LinearLayout.VERTICAL);
-        tile.setGravity(Gravity.CENTER_HORIZONTAL);
+        tile.setGravity(Gravity.CENTER);
         tile.setFocusable(true);
         tile.setClickable(true);
         tile.setBackgroundResource(R.drawable.app_tile_bg);
         tile.setPadding(dp(10), dp(10), dp(10), dp(10));
+        if (!compact) {
+            tile.setMinimumHeight(dp(168));
+        }
         tile.setTag(app.packageName);
         tile.setContentDescription(app.pinned
                 ? getString(R.string.a11y_pinned_app, app.label)
@@ -615,6 +621,7 @@ public class MainActivity extends Activity {
         label.setTextSize(TypeScale.appLabel(this));
         label.setGravity(Gravity.CENTER);
         label.setMaxLines(2);
+        label.setMinLines(2);
         label.setEllipsize(TextUtils.TruncateAt.END);
         label.setLineSpacing(dp(2), 1f);
         label.setIncludeFontPadding(false);
@@ -1024,6 +1031,7 @@ public class MainActivity extends Activity {
     private void applyTypeScale() {
         heroTime.setTextSize(TypeScale.heroClock(this));
         heroDate.setTextSize(TypeScale.heroDate(this));
+        smallTime.setTextSize(TypeScale.topClock(this));
         smallDate.setTextSize(TypeScale.aux(this));
         ipCompact.setTextSize(TypeScale.aux(this));
         ipFull.setTextSize(TypeScale.aux(this));

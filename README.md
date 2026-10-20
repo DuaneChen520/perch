@@ -5,7 +5,7 @@
 
 Perch is a small, offline home screen for Android TV and TV boxes. The first screen is just the time, the date, and one row of apps. Press ↓ and the row opens into the full app grid. There are no ads, no recommendations, no analytics, and no update service. It is built against the platform APIs with no third-party libraries.
 
-![Perch home screen](docs/home.png)
+![Perch home screen](docs/home.jpg)
 
 ## The idea
 
@@ -15,6 +15,7 @@ Most TV launchers are storefronts. Perch is a place to land: one calm screen, th
 - The first row is your pinned apps plus the first alphabetical apps.
 - The full grid is revealed only when you ask for it.
 - The palette is warm charcoal, ivory, and a single moss accent; the only permanent graphics are app icons.
+- The backdrop is drawn at runtime from gradients, four receding ridges, and a fine grain. It ships no image asset and renders from the same relative coordinates at 720p, 1080p, 4K, and 8K.
 
 ## Features
 
@@ -27,13 +28,14 @@ Most TV launchers are storefronts. Perch is a place to land: one calm screen, th
 - D-pad first. BACK never exits the home screen; it closes the quick settings or returns from the grid to the large clock.
 - Accessibility: 5% safe-area padding, a 3 dp high-contrast focus ring, text at 16 sp or larger, WCAG AA text contrast, one TalkBack description per app, and respect for the system animation scale.
 - Adaptive launcher icon, TV banner, English and Simplified Chinese resources.
+- A drawn 苔阶 backdrop behind every screen: warm charcoal gradient, one soft light above the clock, four receding ridges, and grain that keeps dark areas from banding.
 - No `INTERNET` permission: `ACCESS_NETWORK_STATE` is the only declared permission.
 
 ## Screens
 
 | All apps (↓) | Quick settings (↑) | Perch settings |
 | --- | --- | --- |
-| ![All apps](docs/apps.png) | ![Quick settings](docs/quick-settings.png) | ![Perch settings](docs/settings.png) |
+| ![All apps](docs/apps.jpg) | ![Quick settings](docs/quick-settings.jpg) | ![Perch settings](docs/settings.jpg) |
 
 ## Controls
 
@@ -96,7 +98,7 @@ Disabling the stock launcher without a working alternate home app can leave the 
 
 - Application ID: `io.github.duanechen520.perch`
 - Minimum SDK: 21 · Target SDK: 34
-- Current version: `0.1.0`
+- Current version: `0.2.0`
 - Release signing certificate SHA-256 fingerprint: `FB:85:AF:D4:3E:97:9C:AF:68:68:59:DA:2A:A5:37:71:F1:7A:2D:E0:D9:57:6C:B5:3B:64:80:55:8F:3E:FD:21`
 
 Future releases will use the same signing key, so updates can be installed over this version. Do not install a locally built debug APK over a release build: Android rejects updates signed by a different key.
@@ -114,6 +116,7 @@ Future releases will use the same signing key, so updates can be installed over 
 - 5% safe-area margins for overscan.
 - A 3 dp moss focus ring, plus a slight scale change on D-pad focus; the scale is skipped when animations are disabled.
 - WCAG AA contrast for body text and key labels, including the optional IP text and section headings.
+- In settings, the selected option keeps its own fill and color while focused, so the current value stays readable during D-pad navigation.
 - No text below 16 sp in the launcher UI. Three text-size presets are available.
 - App labels wrap to two lines instead of shrinking.
 - Every app tile has a single accessibility description; pinned apps include their pinned state.
@@ -164,6 +167,7 @@ src/io/github/duanechen520/perch/
   SettingsActivity.java                     settings and pinned-app management
   AppRepository.java                        app discovery, ordering, pin storage
   TypeScale.java                            text-size presets
+  WallpaperBackground.java                  drawn 苔阶 backdrop, no image assets
 res/                                        layout-free UI resources, icons, strings (en / zh-CN)
 tools/make_assets.ps1                       optional icon / banner generator (Windows)
 build.sh                                    dependency-free build script
@@ -172,17 +176,19 @@ docs/                                       screenshots used by this README
 
 ## Status and limits
 
-`0.1.0` has been tested on an **Android 5.1.1 (API 22), Amlogic S905M-class TV box** at 1920×1080 with a D-pad remote. It installs, becomes the default home app, survives a real reboot, and the tested interactions above work on that device.
+`0.2.0` has been tested on an **Android 5.1.1 (API 22), Amlogic S905M-class TV box** at 1920×1080, and at a forced 1280×720, with a D-pad remote. It installs, becomes the default home app, survives a real reboot, and the tested interactions above work on that device. On that box, cold start measured 444–566 ms, idle CPU 0% with the clock running, resident memory about 39 MB, and expand/collapse frames 13–31 ms — the same range as `0.1.0`, so the drawn backdrop does not add measurable jank there.
 
 It has **not** been runtime-tested on a modern Android TV / Google TV device yet. The manifest targets API 34 and includes `<queries>` for package visibility; home-app replacement behavior still varies by vendor firmware.
 
 Known limitations:
 
 - Launchable activities only; apps without a launcher activity are not shown.
-- No app hiding, manual reordering, folders, search, widgets, or wallpaper support. Pinned apps are the only ordering control.
-- The grid always uses five columns; layout for very small or very large screens has not been tuned.
+- No app hiding, manual reordering, folders, search, widgets, or system-wallpaper integration. Pinned apps are the only ordering control, and the backdrop is not user-selectable.
+- The grid always uses five columns. The first row keeps five slots, so a device with fewer than five apps shows space rather than stretched tiles; layout for very small or very large screens has not been tuned.
+- The backdrop is drawn from relative coordinates and was rendered offscreen at 3840×2160 and 7680×4320 while it was being developed, but Perch has not been run on a 4K or 8K panel.
 - The optional IP display is a developer aid, not a network-status UI.
 - System settings shortcuts depend on which Settings activities the device exposes.
+- Accessibility descriptions and focus order are in place, but nothing has been verified with TalkBack or another screen reader.
 
 ## Contributing
 
@@ -202,8 +208,8 @@ App icons and app names shown in the screenshots belong to their respective appl
 
 首屏只有大时钟、日期和一排应用；按 ↓ 展开全部应用，按 ↑ 打开顶部快捷设置，长按 OK 可在最多 5 个范围内置顶应用，BACK 从列表回到大时钟。字号支持小、标准、大三档，时钟支持 24 小时或跟随系统，本机 IP 显示仅作为默认关闭的调试选项。
 
-它不申请 INTERNET 权限，没有广告、遥测、推荐位和第三方 SDK；唯一权限是用于读取本机 IP 的 `ACCESS_NETWORK_STATE`。界面使用 5% 安全边距、3dp 焦点环、不低于 16sp 的文字和高对比度配色，并为每个应用提供单条无障碍描述。
+它不申请 INTERNET 权限，没有广告、遥测、推荐位和第三方 SDK；唯一权限是用于读取本机 IP 的 `ACCESS_NETWORK_STATE`。界面使用 5% 安全边距、3dp 焦点环、不低于 16sp 的文字和高对比度配色，并为每个应用提供单条无障碍描述。背景「苔阶」由 Canvas 渐变、四道山脊与细颗粒实时绘制，不打包任何图片资源，720p 到 8K 共用同一套比例坐标。
 
-安装后可在系统「设置 → 应用 → 默认应用 → 主屏幕应用」中切换，或在部分设备上按 HOME 键选择栖。当前 0.1.0 已在 Android 5.1.1（API 22）的 Amlogic S905M 电视盒上实机验证，并作为默认桌面通过真实重启测试；现代 Android TV 设备尚未实机测试。
+安装后可在系统「设置 → 应用 → 默认应用 → 主屏幕应用」中切换，或在部分设备上按 HOME 键选择栖。当前 0.2.0 已在 Android 5.1.1（API 22）的 Amlogic S905M 电视盒上实机验证（1080p 与强制 720p），并作为默认桌面通过真实重启测试；现代 Android TV 设备尚未实机测试。
 
 构建需要 JDK 17 与 Android SDK Platform 34，运行 `bash build.sh`。
