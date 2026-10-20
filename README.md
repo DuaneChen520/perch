@@ -47,7 +47,7 @@ Most TV launchers are storefronts. Perch is a place to land: one calm screen, th
 | BACK | Stay on the home screen | Collapse to the large clock | Close the sheet |
 | HOME | Return to Perch | Return to Perch | Return to Perch |
 
-Pinned apps are sorted alphabetically, followed by the remaining apps. The Perch settings entry is always last in the grid. The five-app first row is filled from this order, so there is no separate dock and no duplicate icons.
+Pinned apps are sorted alphabetically, followed by the remaining apps. The Perch settings entry is placed last by default in the grid. The five-app first row is filled from this order, so there is no separate dock and no duplicate icons.
 
 ## Install
 
