@@ -23,11 +23,11 @@ Most TV launchers are storefronts. Perch is a place to land: one calm screen, th
 - Compact first screen with five apps; ↓ expands to a 5-column, scrollable grid.
 - The clock is one shared element: expanding shrinks it and lifts it to the top while it stays centered.
 - The first screen's row of apps *is* the first row of the grid - one scrollable list, so ↓ slides it up under the clock and ↓ again carries it off the top like any other row.
-- ↑ on the first screen opens quick settings: network, Bluetooth, display, sound, accessibility, all settings, and Perch settings.
+- ↑ on the first screen opens the top menu: system settings and Perch settings, plus an input source when the device actually exposes one. Entries that cannot be opened on the device are not shown, so the menu never leads nowhere.
 - Long-press OK on any app to pin or unpin it. Up to five pinned apps move to the front and are marked with a small moss dot.
 - Text size presets (small, standard, large) apply to app labels, menus, and settings. The clock size is fixed.
 - Optional local IP display for debugging, off by default.
-- D-pad first. BACK never exits the home screen; it closes the quick settings or returns from the grid to the large clock.
+- D-pad first. BACK never exits the home screen; it closes the top menu or returns from the grid to the large clock.
 - Accessibility: 5% safe-area padding, a 3 dp high-contrast focus ring, text at 16 sp or larger, WCAG AA text contrast, one TalkBack description per app, and respect for the system animation scale.
 - Adaptive launcher icon, TV banner, English and Simplified Chinese resources.
 - A drawn 苔阶 backdrop behind every screen: warm charcoal gradient, one soft light above the clock, four receding ridges, and grain that keeps dark areas from banding.
@@ -35,18 +35,18 @@ Most TV launchers are storefronts. Perch is a place to land: one calm screen, th
 
 ## Screens
 
-| All apps (↓) | Quick settings (↑) | Perch settings |
+| All apps (↓) | Top menu (↑) | Perch settings |
 | --- | --- | --- |
-| ![All apps](docs/apps.jpg) | ![Quick settings](docs/quick-settings.jpg) | ![Perch settings](docs/settings.jpg) |
+| ![All apps](docs/apps.jpg) | ![Top menu](docs/quick-settings.jpg) | ![Perch settings](docs/settings.jpg) |
 
 ## Controls
 
-| Input | First screen | All-apps grid | Quick settings |
+| Input | First screen | All-apps grid | Top menu |
 | --- | --- | --- | --- |
-| ← / → | Move between the five apps | Move within a row | Move between settings shortcuts |
-| ↓ | Open all apps | Move down | Close the sheet |
-| ↑ | Open quick settings | Collapse from the first row, otherwise move up | — |
-| OK | Open the app | Open the app | Open the settings screen |
+| ← / → | Move between the five apps | Move within a row | Move between menu entries |
+| ↓ | Open all apps | Move down | Close the menu |
+| ↑ | Open the top menu | Collapse from the first row, otherwise move up | — |
+| OK | Open the app | Open the app | Open the entry |
 | Long-press OK | Pin / unpin the app | Pin / unpin the app | — |
 | BACK | Stay on the home screen | Collapse to the large clock | Close the sheet |
 | HOME | Return to Perch | Return to Perch | Return to Perch |
@@ -122,8 +122,8 @@ Future releases will use the same signing key, so updates can be installed over 
 - No text below 16 sp in the launcher UI. Three text-size presets are available.
 - App labels wrap to two lines instead of shrinking.
 - Every app tile has a single accessibility description; pinned apps include their pinned state.
-- The quick-settings sheet blocks the background from accessibility focus while open.
-- The quick-settings, focus, and expand/collapse animations honor the system animator duration scale.
+- The top menu blocks the background from accessibility focus while open.
+- The menu, focus, and expand/collapse animations honor the system animator duration scale.
 
 A full TalkBack screen-reader pass on a TV remote has not been performed. Visible focus, content descriptions, contrast, and text sizes have been checked on the test device.
 
@@ -165,7 +165,7 @@ The launcher icon and TV banner can be regenerated with `tools/make_assets.ps1` 
 ```
 AndroidManifest.xml                         app, permissions, components, queries
 src/io/github/duanechen520/perch/
-  MainActivity.java                         home screen, grid, quick settings
+  MainActivity.java                         home screen, grid, top menu
   SettingsActivity.java                     settings and pinned-app management
   AppRepository.java                        app discovery, ordering, pin storage
   TypeScale.java                            text-size presets
@@ -208,7 +208,7 @@ App icons and app names shown in the screenshots belong to their respective appl
 
 **栖（Perch）** 是一个安静、离线、无广告的 Android TV 桌面。
 
-首屏只有大时钟、日期和一排应用；按 ↓ 展开全部应用（首屏那一排就是矩阵的第一行：时钟连续缩小上移并始终居中，第一行随之升到它下方，再按 ↓ 会像其他行一样滚出画面），按 ↑ 打开顶部快捷设置，长按 OK 可在最多 5 个范围内置顶应用，BACK 从列表回到大时钟。字号支持小、标准、大三档，时钟支持 24 小时或跟随系统，本机 IP 显示仅作为默认关闭的调试选项。
+首屏只有大时钟、日期和一排应用；按 ↓ 展开全部应用（首屏那一排就是矩阵的第一行：时钟连续缩小上移并始终居中，第一行随之升到它下方，再按 ↓ 会像其他行一样滚出画面），按 ↑ 打开顶部菜单（系统设置、栖设置；设备真有输入源时才会多出一项"输入源"），长按 OK 可在最多 5 个范围内置顶应用，BACK 从列表回到大时钟。字号支持小、标准、大三档，时钟支持 24 小时或跟随系统，本机 IP 显示仅作为默认关闭的调试选项。
 
 它不申请 INTERNET 权限，没有广告、遥测、推荐位和第三方 SDK；唯一权限是用于读取本机 IP 的 `ACCESS_NETWORK_STATE`。界面使用 5% 安全边距、3dp 焦点环、不低于 16sp 的文字和高对比度配色，并为每个应用提供单条无障碍描述。背景「苔阶」由 Canvas 渐变、四道山脊与细颗粒实时绘制，不打包任何图片资源，720p 到 8K 共用同一套比例坐标。
 

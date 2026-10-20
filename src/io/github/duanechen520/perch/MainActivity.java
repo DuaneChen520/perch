@@ -59,20 +59,11 @@ public class MainActivity extends Activity {
     private static final int DOCK_BOTTOM_DP = 44;
     private static final int SLIDE_MS = 220;
 
-    private static final int QUICK_NETWORK = 1;
-    private static final int QUICK_BLUETOOTH = 2;
-    private static final int QUICK_DISPLAY = 3;
-    private static final int QUICK_SOUND = 4;
-    private static final int QUICK_ACCESSIBILITY = 5;
-    private static final int QUICK_ALL_SETTINGS = 6;
-    private static final int QUICK_PERCH = 7;
-
     private final Handler handler = new Handler(Looper.getMainLooper());
     private final List<AppRepository.AppEntry> apps =
             new ArrayList<AppRepository.AppEntry>();
     private final List<View> tiles = new ArrayList<View>();
     private final List<TextView> appLabels = new ArrayList<TextView>();
-    private final List<TextView> sheetLabels = new ArrayList<TextView>();
 
     private final Runnable ticker = new Runnable() {
         @Override
@@ -372,7 +363,7 @@ public class MainActivity extends Activity {
     private void buildSheet() {
         sheet = new LinearLayout(this);
         sheet.setOrientation(LinearLayout.HORIZONTAL);
-        sheet.setGravity(Gravity.CENTER_VERTICAL);
+        sheet.setGravity(Gravity.CENTER);
         sheet.setBackgroundColor(color(R.color.sheet));
         sheet.setPadding(dp(64), dp(40), dp(64), dp(20));
         sheet.setVisibility(View.GONE);
@@ -380,44 +371,64 @@ public class MainActivity extends Activity {
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT,
                 Gravity.TOP));
+    }
 
-        int[] actions = {
-                QUICK_NETWORK, QUICK_BLUETOOTH, QUICK_DISPLAY, QUICK_SOUND,
-                QUICK_ACCESSIBILITY, QUICK_ALL_SETTINGS, QUICK_PERCH
-        };
-        int[] labels = {
-                R.string.quick_network, R.string.quick_bluetooth,
-                R.string.quick_display, R.string.quick_sound,
-                R.string.quick_accessibility, R.string.quick_all_settings,
-                R.string.quick_perch
-        };
-        for (int i = 0; i < actions.length; i++) {
-            final int action = actions[i];
-            TextView item = new TextView(this);
-            item.setText(labels[i]);
-            item.setTextColor(color(R.color.text_primary));
-            item.setTextSize(TypeScale.sheet(this));
-            item.setGravity(Gravity.CENTER);
-            item.setFocusable(true);
-            item.setClickable(true);
-            item.setBackgroundResource(R.drawable.sheet_item_bg);
-            item.setPadding(dp(8), dp(14), dp(8), dp(14));
-            LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
-                    0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f);
-            params.setMargins(dp(4), 0, dp(4), 0);
-            item.setLayoutParams(params);
-            item.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View view) {
-                    openQuick(action);
-                }
-            });
-            item.setId(View.generateViewId());
-            item.setOnFocusChangeListener(scaleFocus(1.03f));
-            sheet.addView(item);
-            sheetLabels.add(item);
+    /** Rebuilt on every open: an entry that cannot be opened is simply not there. */
+    private void populateSheet() {
+        sheet.removeAllViews();
+        Intent inputSource = inputSourceIntent();
+        if (inputSource != null) {
+            addSheetItem(R.string.quick_input_source, inputSource);
         }
+        addSheetItem(R.string.quick_system_settings, new Intent(Settings.ACTION_SETTINGS));
+        addSheetItem(R.string.quick_perch, new Intent(this, SettingsActivity.class));
         linkRowHorizontally(sheet);
+    }
+
+    private void addSheetItem(int labelRes, final Intent intent) {
+        TextView item = new TextView(this);
+        item.setText(labelRes);
+        item.setTextColor(color(R.color.text_primary));
+        item.setTextSize(TypeScale.sheet(this));
+        item.setGravity(Gravity.CENTER);
+        item.setFocusable(true);
+        item.setClickable(true);
+        item.setBackgroundResource(R.drawable.sheet_item_bg);
+        item.setPadding(dp(8), dp(14), dp(8), dp(14));
+        item.setMinWidth(dp(132));
+        LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        params.setMargins(dp(4), 0, dp(4), 0);
+        item.setLayoutParams(params);
+        item.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                openQuick(intent);
+            }
+        });
+        item.setId(View.generateViewId());
+        item.setOnFocusChangeListener(scaleFocus(1.03f));
+        sheet.addView(item);
+    }
+
+    /**
+     * Nothing in the platform opens an input picker, so try the AOSP TV entries and the
+     * action some OEM TV settings register; anything that does not resolve stays hidden.
+     */
+    private Intent inputSourceIntent() {
+        Intent[] candidates = {
+                new Intent().setClassName("com.android.tv.settings",
+                        "com.android.tv.settings.system.InputsActivity"),
+                new Intent().setClassName("com.android.tv", "com.android.tv.SelectInputActivity"),
+                new Intent("android.settings.TV_INPUT_SETTINGS")
+        };
+        PackageManager manager = getPackageManager();
+        for (Intent candidate : candidates) {
+            if (manager.resolveActivity(candidate, 0) != null) {
+                return candidate;
+            }
+        }
+        return null;
     }
 
     private void linkRowHorizontally(LinearLayout row) {
@@ -730,6 +741,7 @@ public class MainActivity extends Activity {
             focusedPackage = (String) current.getTag();
         }
         sheetOpen = true;
+        populateSheet();
         sheet.setVisibility(View.VISIBLE);
         sheet.setAlpha(0f);
         sheet.setTranslationY(-dp(28));
@@ -805,39 +817,14 @@ public class MainActivity extends Activity {
         fullScroll.setImportantForAccessibility(mode);
     }
 
-    private void openQuick(int action) {
-        Intent intent;
-        switch (action) {
-            case QUICK_NETWORK:
-                intent = new Intent(Settings.ACTION_WIRELESS_SETTINGS);
-                break;
-            case QUICK_BLUETOOTH:
-                intent = new Intent(Settings.ACTION_BLUETOOTH_SETTINGS);
-                break;
-            case QUICK_DISPLAY:
-                intent = new Intent(Settings.ACTION_DISPLAY_SETTINGS);
-                break;
-            case QUICK_SOUND:
-                intent = new Intent(Settings.ACTION_SOUND_SETTINGS);
-                break;
-            case QUICK_ACCESSIBILITY:
-                intent = new Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS);
-                break;
-            case QUICK_ALL_SETTINGS:
-                intent = new Intent(Settings.ACTION_SETTINGS);
-                break;
-            case QUICK_PERCH:
-                intent = new Intent(this, SettingsActivity.class);
-                break;
-            default:
-                return;
-        }
+    private void openQuick(Intent intent) {
         hideSheetImmediately(false);
         try {
             startActivity(intent);
         } catch (Exception e) {
             Toast.makeText(this, R.string.quick_settings_unavailable,
                     Toast.LENGTH_SHORT).show();
+            focusArea(expanded);
         }
     }
 
@@ -971,9 +958,6 @@ public class MainActivity extends Activity {
         ipCompact.setTextSize(TypeScale.aux(this));
         for (TextView label : appLabels) {
             label.setTextSize(TypeScale.appLabel(this));
-        }
-        for (TextView label : sheetLabels) {
-            label.setTextSize(TypeScale.sheet(this));
         }
         root.requestLayout();
         heroClock.post(new Runnable() {

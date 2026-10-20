@@ -13,6 +13,8 @@
 - Fixed the focused row resting half off the bottom of the screen on 720p: the platform's own reveal for a focused child ignores the list's bottom inset here, so the matrix now positions the reveal itself and keeps every row inside the safe area.
 - The clock now tracks the scroll offset instead of a separate expanded flag, so it can never disagree with the list - coming back up always returns it to full size.
 - Pressing ↓ on the last row no longer pages the list: a plain ScrollView treats unhandled D-pad presses as page scrolls, which walked the whole matrix off the screen. The matrix now leaves those keys to focus navigation, so the last row simply stays where it is.
+- The top bar is now a short menu instead of seven shortcuts: system settings, Perch settings, and an input source when the device really exposes one. On the box most of the old entries were dead ends - network, Bluetooth, display, sound and accessibility could not resolve at all, and the two that did both landed on the same settings root.
+- Every entry in the menu is resolved on the device before it is shown, so the bar can never lead nowhere; the matrix still reaches the Perch settings screen.
 - Verified on an Android 5.1.1 TV box at 1080p and at a forced 720p, including a real reboot with Perch as the only home app.
 
 ## 0.1.0 - 2026-10-20

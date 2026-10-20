@@ -14,12 +14,8 @@
     <string name="ip_connected">IP %1$s</string>
     <string name="ip_none">IP --</string>
 
-    <string name="quick_network">网络</string>
-    <string name="quick_bluetooth">蓝牙</string>
-    <string name="quick_display">显示</string>
-    <string name="quick_sound">声音</string>
-    <string name="quick_accessibility">无障碍</string>
-    <string name="quick_all_settings">全部设置</string>
+    <string name="quick_input_source">输入源</string>
+    <string name="quick_system_settings">系统设置</string>
     <string name="quick_perch">栖设置</string>
     <string name="quick_settings_unavailable">此设备没有该设置项。</string>
 
