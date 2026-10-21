@@ -2,7 +2,7 @@
 <resources>
     <string name="app_name">栖</string>
     <string name="settings_label">栖设置</string>
-    <string name="tagline">电视的安静落脚处。</string>
+    <string name="tagline">完全离线，67 KB，安卓 4.0 就能跑。</string>
 
     <string name="a11y_clock">当前时间 %1$s，%2$s</string>
     <string name="a11y_pinned_app">%1$s，已置顶</string>

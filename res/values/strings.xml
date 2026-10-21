@@ -2,7 +2,7 @@
 <resources>
     <string name="app_name">Perch</string>
     <string name="settings_label">Perch settings</string>
-    <string name="tagline">A quiet perch for your TV.</string>
+    <string name="tagline">Fully offline. 67 KB. Runs on Android 4.0.</string>
 
     <string name="a11y_clock">Current time %1$s, %2$s</string>
     <string name="a11y_pinned_app">%1$s, pinned</string>

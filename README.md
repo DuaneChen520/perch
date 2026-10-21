@@ -1,7 +1,7 @@
 # 栖 Perch
 
-**A quiet perch for your TV.**  
-栖，电视的安静落脚处。
+**Fully offline. 67 KB. Runs on Android 4.0.**  
+完全离线，67 KB，安卓 4.0 就能跑。
 
 Perch is a small, offline home screen for Android TV and TV boxes. The first screen is just the time, the date, and one row of apps. Press ↓ and the row opens into the full app grid. There are no ads, no recommendations, no analytics, and no update service. It is built against the platform APIs with no third-party libraries.
 
@@ -9,7 +9,7 @@ Perch is a small, offline home screen for Android TV and TV boxes. The first scr
 
 ## The idea
 
-Most TV launchers are storefronts. Perch is a place to land: one calm screen, the current time, and the apps you actually use. Everything else stays one deliberate step away.
+Most TV launchers are storefronts: ad rows, recommendations, telemetry, and a home screen that assumes a new TV. Perch assumes the opposite — an old box, a simple remote, and no network at all. One calm screen, the current time, and the apps you actually use; everything else stays one deliberate step away.
 
 - The clock is the only large element. No brand banner, no cards, no wallpaper carousel.
 - The first row is your pinned apps plus the first alphabetical apps.
@@ -59,11 +59,11 @@ Pinned apps are sorted alphabetically, followed by the remaining apps. The Perch
 
 Requires Android 4.0.3 (API 15) or newer.
 
-1. Download `perch-0.1.0.apk` from the Releases page and verify it against `SHA256SUMS.txt`.
+1. Download `perch-0.2.1.apk` from the Releases page and verify it against `SHA256SUMS.txt`.
 2. Install it:
 
 ```bash
-adb install perch-0.1.0.apk
+adb install perch-0.2.1.apk
 ```
 
 3. Open **Perch settings** from the app list, or start it directly:
@@ -102,7 +102,7 @@ Disabling the stock launcher without a working alternate home app can leave the 
 
 - Application ID: `io.github.duanechen520.perch`
 - Minimum SDK: 15 (Android 4.0.3) · Target SDK: 34
-- Current version: `0.2.0`
+- Current version: `0.2.1`
 - Release signing certificate SHA-256 fingerprint: `FB:85:AF:D4:3E:97:9C:AF:68:68:59:DA:2A:A5:37:71:F1:7A:2D:E0:D9:57:6C:B5:3B:64:80:55:8F:3E:FD:21`
 
 Future releases will use the same signing key, so updates can be installed over this version. Do not install a locally built debug APK over a release build: Android rejects updates signed by a different key.

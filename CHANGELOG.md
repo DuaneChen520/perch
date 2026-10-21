@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.2.1 - 2026-10-21
+
+- Rewrote the tagline around what Perch actually is: fully offline, 67 KB, and runs on Android 4.0. The old "a quiet perch for your TV" line is gone from the README and the settings screen.
+- Fixed the README install instructions, which still pointed at the 0.1.0 APK.
+
 ## 0.2.0 - 2026-10-20
 
 - Added the 苔阶 backdrop: a warm charcoal gradient, one soft light above the clock, four receding ridges, and a runtime-generated grain that stops dark gradients from banding. It is drawn with `Canvas` on the home screen, the quick-settings layer, and the settings screen, so no image asset ships and the same relative coordinates cover 720p through 8K.
