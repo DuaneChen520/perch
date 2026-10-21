@@ -56,7 +56,7 @@ find src "$BUILD/gen" -name '*.java' -print0 | xargs -0 \
 
 jar cf "$BUILD/classes.jar" -C "$BUILD/classes" .
 java -cp "$BT/lib/d8.jar" com.android.tools.r8.D8 \
-    --min-api 21 \
+    --min-api 15 \
     --lib "$PLATFORM" \
     --output "$BUILD/dex" \
     "$BUILD/classes.jar"
@@ -92,10 +92,10 @@ java -jar "$BT/lib/apksigner.jar" sign \
     --ks-key-alias "$PERCH_KEY_ALIAS" \
     --ks-pass "pass:$PERCH_KS_PASS" \
     --key-pass "pass:$KEY_PASS" \
-    --min-sdk-version 21 \
+    --min-sdk-version 15 \
     --out "$SIGNED" \
     "$BUILD/aligned.apk"
 
-java -jar "$BT/lib/apksigner.jar" verify --verbose --min-sdk-version 21 "$SIGNED"
+java -jar "$BT/lib/apksigner.jar" verify --verbose --min-sdk-version 15 "$SIGNED"
 echo
 echo "APK: $SIGNED"

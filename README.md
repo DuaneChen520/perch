@@ -24,14 +24,14 @@ Most TV launchers are storefronts. Perch is a place to land: one calm screen, th
 - The clock is one shared element: expanding shrinks it and lifts it to the top while it stays centered.
 - The first screen's row of apps *is* the first row of the grid - one scrollable list, so ↓ slides it up under the clock and ↓ again carries it off the top like any other row.
 - ↑ on the first screen opens the top menu: system settings and Perch settings, plus an input source when the device actually exposes one. Entries that cannot be opened on the device are not shown, so the menu never leads nowhere.
-- Long-press OK on any app to pin or unpin it. Up to five pinned apps move to the front and are marked with a small moss dot.
+- Long-press OK on any app to open a menu inside its own tile: open, pin/unpin, and uninstall (shown only for apps the system can actually remove). Up to five pinned apps move to the front and are marked with a small moss dot.
 - Text size presets (small, standard, large) apply to app labels, menus, and settings. The clock size is fixed.
 - Optional local IP display for debugging, off by default.
 - D-pad first. BACK never exits the home screen; it closes the top menu or returns from the grid to the large clock.
 - Accessibility: 5% safe-area padding, a 3 dp high-contrast focus ring, text at 16 sp or larger, WCAG AA text contrast, one TalkBack description per app, and respect for the system animation scale.
 - Adaptive launcher icon, TV banner, English and Simplified Chinese resources.
 - A drawn 苔阶 backdrop behind every screen: warm charcoal gradient, one soft light above the clock, four receding ridges, and grain that keeps dark areas from banding.
-- No `INTERNET` permission: `ACCESS_NETWORK_STATE` is the only declared permission.
+- No `INTERNET` permission: `ACCESS_WIFI_STATE` is the only declared permission.
 
 ## Screens
 
@@ -47,15 +47,17 @@ Most TV launchers are storefronts. Perch is a place to land: one calm screen, th
 | ↓ | Open all apps | Move down | Close the menu |
 | ↑ | Open the top menu | Collapse from the first row, otherwise move up | — |
 | OK | Open the app | Open the app | Open the entry |
-| Long-press OK | Pin / unpin the app | Pin / unpin the app | — |
+| Long-press OK | Open the app menu | Open the app menu | — |
 | BACK | Stay on the home screen | Collapse to the large clock | Close the sheet |
 | HOME | Return to Perch | Return to Perch | Return to Perch |
+
+The app menu covers the tile it belongs to and offers Open, Pin/Unpin, and Uninstall. ↑/↓ move inside it; OK runs the entry; BACK, or ↓ past the last entry, closes it and returns focus to the tile.
 
 Pinned apps are sorted alphabetically, followed by the remaining apps. The Perch settings entry is placed last by default in the grid. The five-app first row is filled from this order, so there is no separate dock and no duplicate icons.
 
 ## Install
 
-Requires Android 5.0 (API 21) or newer.
+Requires Android 4.0.3 (API 15) or newer.
 
 1. Download `perch-0.1.0.apk` from the Releases page and verify it against `SHA256SUMS.txt`.
 2. Install it:
@@ -99,7 +101,7 @@ Disabling the stock launcher without a working alternate home app can leave the 
 ## Package and updates
 
 - Application ID: `io.github.duanechen520.perch`
-- Minimum SDK: 21 · Target SDK: 34
+- Minimum SDK: 15 (Android 4.0.3) · Target SDK: 34
 - Current version: `0.2.0`
 - Release signing certificate SHA-256 fingerprint: `FB:85:AF:D4:3E:97:9C:AF:68:68:59:DA:2A:A5:37:71:F1:7A:2D:E0:D9:57:6C:B5:3B:64:80:55:8F:3E:FD:21`
 
@@ -108,7 +110,7 @@ Future releases will use the same signing key, so updates can be installed over 
 ## Privacy
 
 - Perch does **not** declare the `INTERNET` permission and contains no networking code.
-- The only declared permission is `ACCESS_NETWORK_STATE`, a normal permission used solely to read the local IPv4 address for the optional IP display.
+- The only declared permission is `ACCESS_WIFI_STATE`, a normal permission used solely to read the local IPv4 address for the optional IP display (network interfaces are read on wired devices).
 - No analytics, crash reporting, advertising SDKs, or telemetry.
 - The local IP display is off by default and never leaves the device.
 - Settings and pins are stored locally in the app's private storage.
@@ -208,7 +210,7 @@ App icons and app names shown in the screenshots belong to their respective appl
 
 **栖（Perch）** 是一个安静、离线、无广告的 Android TV 桌面。
 
-首屏只有大时钟、日期和一排应用；按 ↓ 展开全部应用（首屏那一排就是矩阵的第一行：时钟连续缩小上移并始终居中，第一行随之升到它下方，再按 ↓ 会像其他行一样滚出画面），按 ↑ 打开顶部菜单（系统设置、栖设置；设备真有输入源时才会多出一项"输入源"），长按 OK 可在最多 5 个范围内置顶应用，BACK 从列表回到大时钟。字号支持小、标准、大三档，时钟支持 24 小时或跟随系统，本机 IP 显示仅作为默认关闭的调试选项。
+首屏只有大时钟、日期和一排应用；按 ↓ 展开全部应用（首屏那一排就是矩阵的第一行：时钟连续缩小上移并始终居中，第一行随之升到它下方，再按 ↓ 会像其他行一样滚出画面），按 ↑ 打开顶部菜单（系统设置、栖设置；设备真有输入源时才会多出一项"输入源"），长按 OK 在应用自己的选框内打开菜单（打开、置顶/取消置顶、卸载；系统应用不显示卸载），最多置顶 5 个，BACK 从列表回到大时钟。字号支持小、标准、大三档，时钟支持 24 小时或跟随系统，本机 IP 显示仅作为默认关闭的调试选项。
 
 它不申请 INTERNET 权限，没有广告、遥测、推荐位和第三方 SDK；唯一权限是用于读取本机 IP 的 `ACCESS_NETWORK_STATE`。界面使用 5% 安全边距、3dp 焦点环、不低于 16sp 的文字和高对比度配色，并为每个应用提供单条无障碍描述。背景「苔阶」由 Canvas 渐变、四道山脊与细颗粒实时绘制，不打包任何图片资源，720p 到 8K 共用同一套比例坐标。
 

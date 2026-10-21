@@ -11,6 +11,12 @@
     <string name="unpinned_toast">Unpinned %1$s</string>
     <string name="launch_failed">Cannot open %1$s</string>
 
+    <string name="menu_open">Open</string>
+    <string name="menu_pin">Pin</string>
+    <string name="menu_unpin">Unpin</string>
+    <string name="menu_uninstall">Uninstall</string>
+    <string name="uninstall_failed">Cannot uninstall %1$s</string>
+
     <string name="ip_connected">IP %1$s</string>
     <string name="ip_none">IP --</string>
 
@@ -29,7 +35,7 @@
     <string name="settings_home_settings_missing">This device has no home app settings. Press HOME and choose Perch, or see the README for the ADB method.</string>
 
     <string name="settings_heading_pins">Pinned apps</string>
-    <string name="settings_pins_hint">Long-press OK on any app to pin or unpin it. Up to five pinned apps appear first.</string>
+    <string name="settings_pins_hint">Long-press OK on any app to open its menu, then choose Pin. Up to five pinned apps appear first.</string>
     <string name="settings_pins_empty">No pinned apps yet.</string>
     <string name="settings_unpin">Unpin</string>
     <string name="settings_pinned_removed">Unpinned %1$s</string>
@@ -50,7 +56,7 @@
     <string name="settings_ip_hint">Development aid only. The address stays on this device.</string>
 
     <string name="settings_heading_controls">Controls</string>
-    <string name="settings_controls">On the home screen, ↓ opens all apps and ↑ opens quick settings. BACK returns to the large clock. Long-press OK pins an app.</string>
+    <string name="settings_controls">On the home screen, ↓ opens all apps and ↑ opens quick settings. BACK returns to the large clock. Long-press OK on an app for its menu.</string>
 
     <string name="settings_heading_about">About</string>
     <string name="settings_about">Perch %1$s · Apache-2.0\nNo ads, telemetry, or Internet permission.</string>

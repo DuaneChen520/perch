@@ -11,6 +11,12 @@
     <string name="unpinned_toast">已取消置顶 %1$s</string>
     <string name="launch_failed">无法打开 %1$s</string>
 
+    <string name="menu_open">打开</string>
+    <string name="menu_pin">置顶</string>
+    <string name="menu_unpin">取消置顶</string>
+    <string name="menu_uninstall">卸载</string>
+    <string name="uninstall_failed">无法卸载 %1$s</string>
+
     <string name="ip_connected">IP %1$s</string>
     <string name="ip_none">IP --</string>
 
@@ -29,7 +35,7 @@
     <string name="settings_home_settings_missing">此设备没有桌面设置入口。可按 HOME 键选择栖，或参考 README 中的 ADB 方法。</string>
 
     <string name="settings_heading_pins">置顶应用</string>
-    <string name="settings_pins_hint">在任意应用上长按 OK 可置顶或取消置顶。最多置顶 5 个，置顶应用会排在前面。</string>
+    <string name="settings_pins_hint">在任意应用上长按 OK 打开应用菜单，选择置顶。最多置顶 5 个，置顶应用会排在前面。</string>
     <string name="settings_pins_empty">暂无置顶应用。</string>
     <string name="settings_unpin">取消置顶</string>
     <string name="settings_pinned_removed">已取消置顶 %1$s</string>
@@ -50,7 +56,7 @@
     <string name="settings_ip_hint">仅用于调试，地址只留在本机。</string>
 
     <string name="settings_heading_controls">操作</string>
-    <string name="settings_controls">桌面按 ↓ 显示全部应用，按 ↑ 打开快捷设置，按 BACK 回到大时钟；长按 OK 可置顶应用。</string>
+    <string name="settings_controls">桌面按 ↓ 显示全部应用，按 ↑ 打开快捷设置，按 BACK 回到大时钟；在应用上长按 OK 打开应用菜单。</string>
 
     <string name="settings_heading_about">关于</string>
     <string name="settings_about">栖 Perch %1$s · Apache-2.0\n无广告、无遥测、无 INTERNET 权限。</string>

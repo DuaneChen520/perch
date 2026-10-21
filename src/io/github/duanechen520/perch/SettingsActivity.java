@@ -7,6 +7,7 @@ import android.content.pm.PackageManager;
 import android.content.pm.ResolveInfo;
 import android.graphics.Typeface;
 import android.graphics.drawable.Drawable;
+import android.os.Build;
 import android.os.Bundle;
 import android.provider.Settings;
 import android.view.Gravity;
@@ -42,6 +43,7 @@ public class SettingsActivity extends Activity {
     private String pinnedSignature;
     private String restoredFocusTag;
     private boolean initialFocusDone;
+    private int nextViewId = 0;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -400,7 +402,7 @@ public class SettingsActivity extends Activity {
                 drawable = getResources().getDrawable(android.R.drawable.sym_def_app_icon);
             }
             icon.setImageDrawable(drawable);
-            icon.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
+            setAccessibility(icon, View.IMPORTANT_FOR_ACCESSIBILITY_NO);
             row.addView(icon, new LinearLayout.LayoutParams(dp(38), dp(38)));
 
             TextView label = new TextView(this);
@@ -408,7 +410,7 @@ public class SettingsActivity extends Activity {
             label.setTextColor(color(R.color.text_primary));
             label.setTextSize(TypeScale.body(this));
             label.setMaxLines(1);
-            label.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
+            setAccessibility(label, View.IMPORTANT_FOR_ACCESSIBILITY_NO);
             LinearLayout.LayoutParams labelParams = new LinearLayout.LayoutParams(
                     0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f);
             labelParams.leftMargin = dp(14);
@@ -418,7 +420,7 @@ public class SettingsActivity extends Activity {
             action.setText(R.string.settings_unpin);
             action.setTextColor(color(R.color.accent));
             action.setTextSize(TypeScale.aux(this));
-            action.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
+            setAccessibility(action, View.IMPORTANT_FOR_ACCESSIBILITY_NO);
             row.addView(action);
 
             row.setOnClickListener(new View.OnClickListener() {
@@ -480,7 +482,9 @@ public class SettingsActivity extends Activity {
         heading.setText(labelResource);
         heading.setTextColor(color(R.color.accent));
         heading.setTextSize(18f);
-        heading.setLetterSpacing(0.06f);
+        if (Build.VERSION.SDK_INT >= 21) {
+            heading.setLetterSpacing(0.06f);
+        }
         LinearLayout.LayoutParams headingParams = new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.WRAP_CONTENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT);
@@ -509,7 +513,7 @@ public class SettingsActivity extends Activity {
         option.setClickable(true);
         option.setBackgroundResource(R.drawable.option_bg);
         option.setPadding(dp(16), dp(10), dp(16), dp(10));
-        option.setId(View.generateViewId());
+        option.setId(newViewId());
         return option;
     }
 
@@ -562,5 +566,15 @@ public class SettingsActivity extends Activity {
 
     private int dp(int value) {
         return Math.round(value * getResources().getDisplayMetrics().density);
+    }
+
+    private int newViewId() {
+        return 0x7F0F0000 | (++nextViewId & 0xFFFF);
+    }
+
+    private void setAccessibility(View view, int mode) {
+        if (Build.VERSION.SDK_INT >= 16) {
+            view.setImportantForAccessibility(mode);
+        }
     }
 }

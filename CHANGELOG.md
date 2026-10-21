@@ -15,7 +15,10 @@
 - Pressing ↓ on the last row no longer pages the list: a plain ScrollView treats unhandled D-pad presses as page scrolls, which walked the whole matrix off the screen. The matrix now leaves those keys to focus navigation, so the last row simply stays where it is.
 - The top bar is now a short menu instead of seven shortcuts: system settings, Perch settings, and an input source when the device really exposes one. On the box most of the old entries were dead ends - network, Bluetooth, display, sound and accessibility could not resolve at all, and the two that did both landed on the same settings root.
 - Every entry in the menu is resolved on the device before it is shown, so the bar can never lead nowhere; the matrix still reaches the Perch settings screen.
+- Long-pressing OK (or holding on touch) now opens an app menu inside that app's own tile: open, pin/unpin, and uninstall. Uninstall appears only for packages the system can remove; the menu is a small vertical list that keeps the surrounding grid untouched, and BACK or moving past either end returns focus to the tile.
+- Runs on Android 4.0.3 (API 15): the theme falls back to Holo below 21, newer platform calls are guarded, and the optional IP readout uses Wi-Fi's own address where the old YunOS `NetworkInterface` throws.
 - Verified on an Android 5.1.1 TV box at 1080p and at a forced 720p, including a real reboot with Perch as the only home app.
+- Verified on a Konka 800C (Android 4.0.3; its Android app layer runs at 1280x720 / 160 dpi and is upscaled to the TV's 1080p panel) with its IR remote, which has no BACK key: expand/collapse, top menu, app menu, pin/unpin, launching an app, settings, text-size presets, and the IP readout all work, and every overlay can be closed from the D-pad alone.
 
 ## 0.1.0 - 2026-10-20
 

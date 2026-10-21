@@ -6,14 +6,15 @@ import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageManager;
 import android.content.res.Configuration;
 import android.graphics.Typeface;
 import android.graphics.drawable.Drawable;
-import android.net.ConnectivityManager;
-import android.net.LinkAddress;
-import android.net.LinkProperties;
-import android.net.Network;
+import android.net.Uri;
+import android.net.wifi.WifiInfo;
+import android.net.wifi.WifiManager;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
@@ -36,10 +37,12 @@ import android.widget.Toast;
 
 import java.net.Inet4Address;
 import java.net.InetAddress;
+import java.net.NetworkInterface;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.Enumeration;
 import java.util.List;
 import java.util.Locale;
 
@@ -88,10 +91,13 @@ public class MainActivity extends Activity {
     private Space tailSpace;
     private ScrollView fullScroll;
     private LinearLayout sheet;
+    private LinearLayout appMenu;
     private TextView heroTime;
     private TextView heroDate;
     private TextView ipCompact;
     private ValueAnimator scrollAnimator;
+    private AppRepository.AppEntry menuApp;
+    private View menuAnchor;
     private int leadHeight;
 
     private SharedPreferences prefs;
@@ -104,7 +110,10 @@ public class MainActivity extends Activity {
     private long lastIpCheck = 0L;
     private boolean expanded = false;
     private boolean sheetOpen = false;
+    private boolean appMenuOpen = false;
+    private boolean swallowCenterUntilUp = false;
     private boolean showIp = false;
+    private int nextViewId = 0;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -152,6 +161,9 @@ public class MainActivity extends Activity {
     @Override
     protected void onPause() {
         handler.removeCallbacks(ticker);
+        if (appMenuOpen) {
+            closeAppMenu(false);
+        }
         if (sheetOpen) {
             hideSheetImmediately(false);
         }
@@ -167,6 +179,9 @@ public class MainActivity extends Activity {
     @Override
     public void onConfigurationChanged(Configuration newConfig) {
         super.onConfigurationChanged(newConfig);
+        if (appMenuOpen) {
+            closeAppMenu(false);
+        }
         updateTimeFormats();
         updateClock();
         applyTypeScale();
@@ -184,6 +199,9 @@ public class MainActivity extends Activity {
     @Override
     public void onNewIntent(Intent intent) {
         super.onNewIntent(intent);
+        if (appMenuOpen) {
+            closeAppMenu(false);
+        }
         if (sheetOpen) {
             hideSheetImmediately(false);
         }
@@ -196,6 +214,10 @@ public class MainActivity extends Activity {
 
     @Override
     public void onBackPressed() {
+        if (appMenuOpen) {
+            closeAppMenu(true);
+            return;
+        }
         if (sheetOpen) {
             closeSheet(true);
             return;
@@ -209,9 +231,19 @@ public class MainActivity extends Activity {
 
     @Override
     public boolean dispatchKeyEvent(KeyEvent event) {
+        // The long press that opened the menu is still holding OK down. Its repeats
+        // and final up must not land on whichever menu item just took focus.
+        if (appMenuOpen && swallowCenterUntilUp
+                && (event.getKeyCode() == KeyEvent.KEYCODE_DPAD_CENTER
+                        || event.getKeyCode() == KeyEvent.KEYCODE_ENTER)) {
+            if (event.getAction() == KeyEvent.ACTION_UP) {
+                swallowCenterUntilUp = false;
+            }
+            return true;
+        }
         // The dock row is a real row now, so the framework would happily move focus
         // down it. Entering the matrix has to win before that focus search runs.
-        if (!expanded && !sheetOpen
+        if (!expanded && !sheetOpen && !appMenuOpen
                 && event.getKeyCode() == KeyEvent.KEYCODE_DPAD_DOWN
                 && event.getAction() == KeyEvent.ACTION_DOWN
                 && event.getRepeatCount() == 0) {
@@ -229,6 +261,26 @@ public class MainActivity extends Activity {
                 return true;
             }
             if (keyCode == KeyEvent.KEYCODE_DPAD_UP) {
+                return true;
+            }
+            return super.onKeyDown(keyCode, event);
+        }
+
+        if (appMenuOpen) {
+            // The menu is a small vertical list; leaving it upward or downward puts
+            // focus back on the tile instead of wandering into its neighbours.
+            if (keyCode == KeyEvent.KEYCODE_DPAD_DOWN
+                    && event.getRepeatCount() == 0 && isLastMenuItemFocused()) {
+                closeAppMenu(true);
+                return true;
+            }
+            if (keyCode == KeyEvent.KEYCODE_DPAD_UP
+                    && event.getRepeatCount() == 0 && isFirstMenuItemFocused()) {
+                closeAppMenu(true);
+                return true;
+            }
+            if (keyCode == KeyEvent.KEYCODE_DPAD_LEFT
+                    || keyCode == KeyEvent.KEYCODE_DPAD_RIGHT) {
                 return true;
             }
             return super.onKeyDown(keyCode, event);
@@ -267,6 +319,7 @@ public class MainActivity extends Activity {
         buildGrid();
         buildCompact();
         buildSheet();
+        buildAppMenu();
 
         heroClock.addOnLayoutChangeListener(new View.OnLayoutChangeListener() {
             @Override
@@ -304,8 +357,10 @@ public class MainActivity extends Activity {
         heroTime.setTextSize(TypeScale.heroClock(this));
         heroTime.setTypeface(Typeface.create("sans-serif-light", Typeface.NORMAL));
         heroTime.setIncludeFontPadding(false);
-        heroTime.setLetterSpacing(0.02f);
-        heroTime.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
+        if (Build.VERSION.SDK_INT >= 21) {
+            heroTime.setLetterSpacing(0.02f);
+        }
+        setAccessibility(heroTime, View.IMPORTANT_FOR_ACCESSIBILITY_NO);
         heroClock.addView(heroTime, new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT));
@@ -315,7 +370,7 @@ public class MainActivity extends Activity {
         heroDate.setTextColor(color(R.color.text_secondary));
         heroDate.setTextSize(TypeScale.heroDate(this));
         heroDate.setIncludeFontPadding(false);
-        heroDate.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
+        setAccessibility(heroDate, View.IMPORTANT_FOR_ACCESSIBILITY_NO);
         LinearLayout.LayoutParams heroDateParams = new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT);
@@ -373,6 +428,19 @@ public class MainActivity extends Activity {
                 Gravity.TOP));
     }
 
+    /** A small action list that covers exactly the box of the tile it belongs to. */
+    private void buildAppMenu() {
+        appMenu = new LinearLayout(this);
+        appMenu.setOrientation(LinearLayout.VERTICAL);
+        appMenu.setBackgroundResource(R.drawable.app_menu_bg);
+        appMenu.setPadding(dp(6), dp(6), dp(6), dp(6));
+        appMenu.setVisibility(View.GONE);
+        root.addView(appMenu, new FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+                Gravity.TOP | Gravity.START));
+    }
+
     /** Rebuilt on every open: an entry that cannot be opened is simply not there. */
     private void populateSheet() {
         sheet.removeAllViews();
@@ -406,7 +474,7 @@ public class MainActivity extends Activity {
                 openQuick(intent);
             }
         });
-        item.setId(View.generateViewId());
+        item.setId(newViewId());
         item.setOnFocusChangeListener(scaleFocus(1.03f));
         sheet.addView(item);
     }
@@ -415,8 +483,7 @@ public class MainActivity extends Activity {
      * Nothing in the platform opens an input picker, so try the AOSP TV entries and the
      * action some OEM TV settings register; anything that does not resolve stays hidden.
      */
-    private Intent inputSourceIntent() {
-        Intent[] candidates = {
+    private Intent inputSourceIntent() {        Intent[] candidates = {
                 new Intent().setClassName("com.android.tv.settings",
                         "com.android.tv.settings.system.InputsActivity"),
                 new Intent().setClassName("com.android.tv", "com.android.tv.SelectInputActivity"),
@@ -439,6 +506,201 @@ public class MainActivity extends Activity {
             View right = row.getChildAt(i == count - 1 ? count - 1 : i + 1);
             child.setNextFocusLeftId(left.getId());
             child.setNextFocusRightId(right.getId());
+        }
+    }
+
+    private void openAppMenu(View tile, AppRepository.AppEntry app, boolean fromKey) {
+        if (appMenuOpen || tile == null || tile.getWidth() == 0 || tile.getHeight() == 0) {
+            return;
+        }
+        if (sheetOpen) {
+            hideSheetImmediately(false);
+        }
+        menuApp = app;
+        menuAnchor = tile;
+        appMenuOpen = true;
+        swallowCenterUntilUp = fromKey;
+        focusedPackage = app.packageName;
+        populateAppMenu();
+        positionAppMenu(tile);
+        setAppAccessibilityBlocked(true);
+        appMenu.setVisibility(View.VISIBLE);
+        appMenu.setAlpha(0f);
+        if (animationsEnabled()) {
+            appMenu.animate().alpha(1f).setDuration(120L).start();
+        } else {
+            appMenu.setAlpha(1f);
+        }
+        View first = appMenu.getChildAt(0);
+        if (first != null) {
+            first.requestFocus();
+        }
+    }
+
+    private void populateAppMenu() {
+        appMenu.removeAllViews();
+        final AppRepository.AppEntry app = menuApp;
+        addAppMenuItem(R.string.menu_open, new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                if (!appMenuOpen) {
+                    return;
+                }
+                closeAppMenu(false);
+                launch(app);
+            }
+        });
+        addAppMenuItem(app.pinned ? R.string.menu_unpin : R.string.menu_pin,
+                new View.OnClickListener() {
+                    @Override
+                    public void onClick(View view) {
+                        if (appMenuOpen) {
+                            togglePinFromMenu(app);
+                        }
+                    }
+                });
+        if (canUninstall(app)) {
+            addAppMenuItem(R.string.menu_uninstall, new View.OnClickListener() {
+                @Override
+                public void onClick(View view) {
+                    if (appMenuOpen) {
+                        uninstallFromMenu(app);
+                    }
+                }
+            });
+        }
+        linkMenuVertically();
+    }
+
+    private void addAppMenuItem(int labelRes, View.OnClickListener listener) {
+        TextView item = new TextView(this);
+        item.setText(labelRes);
+        item.setTextColor(color(R.color.text_primary));
+        item.setTextSize(TypeScale.sheet(this));
+        item.setGravity(Gravity.CENTER);
+        item.setFocusable(true);
+        item.setClickable(true);
+        item.setBackgroundResource(R.drawable.sheet_item_bg);
+        item.setPadding(dp(8), dp(6), dp(8), dp(6));
+        LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f);
+        params.setMargins(dp(2), dp(2), dp(2), dp(2));
+        item.setLayoutParams(params);
+        item.setOnClickListener(listener);
+        item.setId(newViewId());
+        appMenu.addView(item);
+    }
+
+    private void linkMenuVertically() {
+        int count = appMenu.getChildCount();
+        for (int i = 0; i < count; i++) {
+            View child = appMenu.getChildAt(i);
+            View up = appMenu.getChildAt(i == 0 ? 0 : i - 1);
+            View down = appMenu.getChildAt(i == count - 1 ? count - 1 : i + 1);
+            child.setNextFocusUpId(up.getId());
+            child.setNextFocusDownId(down.getId());
+            child.setNextFocusLeftId(child.getId());
+            child.setNextFocusRightId(child.getId());
+        }
+    }
+
+    /** The card borrows the tile's own box, clamped to the grid's visible band. */
+    private void positionAppMenu(View tile) {
+        int[] tileLocation = new int[2];
+        tile.getLocationInWindow(tileLocation);
+        int[] rootLocation = new int[2];
+        root.getLocationInWindow(rootLocation);
+        int left = tileLocation[0] - rootLocation[0];
+        int top = tileLocation[1] - rootLocation[1];
+        int topLimit = headerBottom();
+        int bottomLimit = root.getHeight() - dp(DOCK_BOTTOM_DP);
+        int height = Math.min(tile.getHeight(), Math.max(0, bottomLimit - topLimit));
+        top = Math.max(topLimit, Math.min(top, bottomLimit - height));
+        FrameLayout.LayoutParams params =
+                (FrameLayout.LayoutParams) appMenu.getLayoutParams();
+        params.gravity = Gravity.TOP | Gravity.START;
+        params.leftMargin = left;
+        params.topMargin = top;
+        params.width = tile.getWidth();
+        params.height = height;
+        appMenu.setLayoutParams(params);
+    }
+
+    private void closeAppMenu(boolean restoreFocus) {
+        if (!appMenuOpen) {
+            return;
+        }
+        appMenuOpen = false;
+        swallowCenterUntilUp = false;
+        menuApp = null;
+        appMenu.animate().cancel();
+        appMenu.setVisibility(View.GONE);
+        appMenu.setAlpha(1f);
+        setAppAccessibilityBlocked(false);
+        final View anchor = menuAnchor;
+        menuAnchor = null;
+        if (restoreFocus && anchor != null && tiles.contains(anchor)) {
+            anchor.post(new Runnable() {
+                @Override
+                public void run() {
+                    anchor.requestFocus();
+                }
+            });
+        }
+    }
+
+    private boolean isFirstMenuItemFocused() {
+        return isMenuItemFocused(0);
+    }
+
+    private boolean isLastMenuItemFocused() {
+        return isMenuItemFocused(appMenu.getChildCount() - 1);
+    }
+
+    private boolean isMenuItemFocused(int index) {
+        View focus = getCurrentFocus();
+        return index >= 0 && focus != null && focus.getParent() == appMenu
+                && appMenu.indexOfChild(focus) == index;
+    }
+
+    private boolean canUninstall(AppRepository.AppEntry app) {
+        if (app.packageName.equals(getPackageName())) {
+            return false;
+        }
+        try {
+            ApplicationInfo info = getPackageManager().getApplicationInfo(app.packageName, 0);
+            return (info.flags & (ApplicationInfo.FLAG_SYSTEM
+                    | ApplicationInfo.FLAG_UPDATED_SYSTEM_APP)) == 0;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    private void togglePinFromMenu(AppRepository.AppEntry app) {
+        int result = AppRepository.togglePin(this, app.packageName);
+        if (result < 0) {
+            Toast.makeText(this, R.string.pin_limit, Toast.LENGTH_SHORT).show();
+            return;
+        }
+        closeAppMenu(false);
+        focusedPackage = app.packageName;
+        refreshApps(true);
+        Toast.makeText(this,
+                getString(result == 1 ? R.string.pinned_toast : R.string.unpinned_toast,
+                        app.label),
+                Toast.LENGTH_SHORT).show();
+    }
+
+    private void uninstallFromMenu(AppRepository.AppEntry app) {
+        Intent intent = new Intent(Intent.ACTION_DELETE,
+                Uri.fromParts("package", app.packageName, null));
+        closeAppMenu(false);
+        try {
+            startActivity(intent);
+        } catch (Exception e) {
+            Toast.makeText(this, getString(R.string.uninstall_failed, app.label),
+                    Toast.LENGTH_SHORT).show();
+            focusArea(expanded);
         }
     }
 
@@ -465,6 +727,9 @@ public class MainActivity extends Activity {
     }
 
     private void renderApps() {
+        if (appMenuOpen) {
+            closeAppMenu(false);
+        }
         if (sheetOpen) {
             hideSheetImmediately(false);
         }
@@ -574,7 +839,7 @@ public class MainActivity extends Activity {
             drawable = getResources().getDrawable(android.R.drawable.sym_def_app_icon);
         }
         icon.setImageDrawable(drawable);
-        icon.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
+        setAccessibility(icon, View.IMPORTANT_FOR_ACCESSIBILITY_NO);
         iconFrame.addView(icon, new FrameLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.MATCH_PARENT));
@@ -582,7 +847,7 @@ public class MainActivity extends Activity {
         if (app.pinned) {
             View dot = new View(this);
             dot.setBackgroundResource(R.drawable.pin_dot);
-            dot.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
+            setAccessibility(dot, View.IMPORTANT_FOR_ACCESSIBILITY_NO);
             FrameLayout.LayoutParams dotParams = new FrameLayout.LayoutParams(
                     dp(12), dp(12), Gravity.TOP | Gravity.END);
             iconFrame.addView(dot, dotParams);
@@ -599,7 +864,7 @@ public class MainActivity extends Activity {
         label.setLineSpacing(dp(2), 1f);
         label.setIncludeFontPadding(false);
         label.setDuplicateParentStateEnabled(true);
-        label.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
+        setAccessibility(label, View.IMPORTANT_FOR_ACCESSIBILITY_NO);
         LinearLayout.LayoutParams labelParams = new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT);
@@ -616,7 +881,7 @@ public class MainActivity extends Activity {
         tile.setOnLongClickListener(new View.OnLongClickListener() {
             @Override
             public boolean onLongClick(View view) {
-                togglePin(app);
+                openAppMenu(view, app, false);
                 return true;
             }
         });
@@ -663,7 +928,7 @@ public class MainActivity extends Activity {
                     longPressHandled = false;
                 } else if (!longPressHandled) {
                     longPressHandled = true;
-                    togglePin(app);
+                    openAppMenu(view, app, true);
                 }
                 return true;
             }
@@ -676,7 +941,7 @@ public class MainActivity extends Activity {
                 long held = SystemClock.uptimeMillis() - downAt;
                 downAt = 0L;
                 if (held >= LONG_PRESS_MS) {
-                    togglePin(app);
+                    openAppMenu(view, app, false);
                 } else {
                     launch(app);
                 }
@@ -706,6 +971,9 @@ public class MainActivity extends Activity {
     private void setExpanded(boolean expand) {
         if (expanded == expand) {
             return;
+        }
+        if (appMenuOpen) {
+            closeAppMenu(false);
         }
         if (sheetOpen) {
             hideSheetImmediately(false);
@@ -772,17 +1040,18 @@ public class MainActivity extends Activity {
         setAppAccessibilityBlocked(false);
         if (animationsEnabled()) {
             sheet.animate().alpha(0f).translationY(-dp(28))
-                    .setDuration(160L)
-                    .withEndAction(new Runnable() {
-                        @Override
-                        public void run() {
-                            if (!sheetOpen) {
-                                sheet.setVisibility(View.GONE);
-                                sheet.setAlpha(1f);
-                                sheet.setTranslationY(0f);
-                            }
-                        }
-                    }).start();
+                    .setDuration(160L).start();
+            // withEndAction is API 16; a delayed hide covers the same window on 15.
+            handler.postDelayed(new Runnable() {
+                @Override
+                public void run() {
+                    if (!sheetOpen) {
+                        sheet.setVisibility(View.GONE);
+                        sheet.setAlpha(1f);
+                        sheet.setTranslationY(0f);
+                    }
+                }
+            }, 160L);
         } else {
             sheet.setVisibility(View.GONE);
             sheet.setAlpha(1f);
@@ -813,8 +1082,8 @@ public class MainActivity extends Activity {
         int mode = blocked
                 ? View.IMPORTANT_FOR_ACCESSIBILITY_NO_HIDE_DESCENDANTS
                 : View.IMPORTANT_FOR_ACCESSIBILITY_AUTO;
-        compactContainer.setImportantForAccessibility(mode);
-        fullScroll.setImportantForAccessibility(mode);
+        setAccessibility(compactContainer, mode);
+        setAccessibility(fullScroll, mode);
     }
 
     private void openQuick(Intent intent) {
@@ -840,20 +1109,6 @@ public class MainActivity extends Activity {
             Toast.makeText(this, getString(R.string.launch_failed, app.label),
                     Toast.LENGTH_SHORT).show();
         }
-    }
-
-    private void togglePin(AppRepository.AppEntry app) {
-        int result = AppRepository.togglePin(this, app.packageName);
-        if (result < 0) {
-            Toast.makeText(this, R.string.pin_limit, Toast.LENGTH_SHORT).show();
-            return;
-        }
-        focusedPackage = app.packageName;
-        refreshApps(true);
-        Toast.makeText(this,
-                getString(result == 1 ? R.string.pinned_toast : R.string.unpinned_toast,
-                        app.label),
-                Toast.LENGTH_SHORT).show();
     }
 
     /**
@@ -932,6 +1187,7 @@ public class MainActivity extends Activity {
             scrollAnimator = null;
         }
         sheet.animate().cancel();
+        appMenu.animate().cancel();
     }
 
     /** Keeps the clock centered while it shrinks toward the top of the screen. */
@@ -980,10 +1236,15 @@ public class MainActivity extends Activity {
         } else {
             timeFormat = new SimpleDateFormat("HH:mm", locale);
         }
-        String pattern = "zh".equals(locale.getLanguage())
-                ? "M月d日 EEEE"
-                : android.text.format.DateFormat.getBestDateTimePattern(
-                        locale, "EEEEMMMd");
+        String pattern;
+        if ("zh".equals(locale.getLanguage())) {
+            pattern = "M月d日 EEEE";
+        } else if (Build.VERSION.SDK_INT >= 18) {
+            pattern = android.text.format.DateFormat.getBestDateTimePattern(
+                    locale, "EEEEMMMd");
+        } else {
+            pattern = "EEEE, MMM d";
+        }
         dateFormat = new SimpleDateFormat(pattern, locale);
     }
 
@@ -1019,7 +1280,7 @@ public class MainActivity extends Activity {
         if (ip == null) {
             ip = "";
         }
-        if (ip.equals(lastIp)) {
+        if (ip.equals(lastIp) && ipCompact.getText().length() > 0) {
             return;
         }
         lastIp = ip;
@@ -1030,34 +1291,29 @@ public class MainActivity extends Activity {
     }
 
     private String findLanIpv4() {
+        String wifiIp = findWifiIpv4();
+        if (wifiIp != null) {
+            return wifiIp;
+        }
         String preferredPrivate = null;
         String anyPrivate = null;
         String anyIpv4 = null;
         try {
-            ConnectivityManager manager =
-                    (ConnectivityManager) getSystemService(CONNECTIVITY_SERVICE);
-            if (manager == null) {
+            Enumeration<NetworkInterface> interfaces = NetworkInterface.getNetworkInterfaces();
+            if (interfaces == null) {
                 return null;
             }
-            Network[] networks = manager.getAllNetworks();
-            if (networks == null) {
-                return null;
-            }
-            for (Network network : networks) {
-                LinkProperties properties;
-                try {
-                    properties = manager.getLinkProperties(network);
-                } catch (Exception e) {
+            while (interfaces.hasMoreElements()) {
+                NetworkInterface network = interfaces.nextElement();
+                if (network == null || !network.isUp()) {
                     continue;
                 }
-                if (properties == null) {
-                    continue;
-                }
-                String name = properties.getInterfaceName();
+                String name = network.getName();
                 boolean preferred = name != null
                         && (name.startsWith("eth") || name.startsWith("wlan"));
-                for (LinkAddress linkAddress : properties.getLinkAddresses()) {
-                    InetAddress address = linkAddress.getAddress();
+                Enumeration<InetAddress> addresses = network.getInetAddresses();
+                while (addresses.hasMoreElements()) {
+                    InetAddress address = addresses.nextElement();
                     if (!(address instanceof Inet4Address) || address.isLoopbackAddress()) {
                         continue;
                     }
@@ -1076,7 +1332,7 @@ public class MainActivity extends Activity {
                 }
             }
         } catch (Exception e) {
-            Log.w(TAG, "cannot read link properties", e);
+            Log.w(TAG, "cannot read network interfaces", e);
         }
         if (preferredPrivate != null) {
             return preferredPrivate;
@@ -1084,10 +1340,39 @@ public class MainActivity extends Activity {
         return anyPrivate != null ? anyPrivate : anyIpv4;
     }
 
+    /** NetworkInterface throws on some API 15 stacks; Wi-Fi still reports its own address. */
+    private String findWifiIpv4() {
+        try {
+            WifiManager wifi = (WifiManager) getSystemService(WIFI_SERVICE);
+            if (wifi == null) {
+                return null;
+            }
+            WifiInfo info = wifi.getConnectionInfo();
+            if (info == null) {
+                return null;
+            }
+            int raw = info.getIpAddress();
+            if (raw == 0) {
+                return null;
+            }
+            return String.format(Locale.US, "%d.%d.%d.%d",
+                    raw & 0xFF, (raw >> 8) & 0xFF, (raw >> 16) & 0xFF, (raw >> 24) & 0xFF);
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
     private boolean animationsEnabled() {
         try {
-            return Settings.Global.getFloat(getContentResolver(),
-                    Settings.Global.ANIMATOR_DURATION_SCALE, 1f) > 0f;
+            float scale;
+            if (Build.VERSION.SDK_INT >= 17) {
+                scale = Settings.Global.getFloat(getContentResolver(),
+                        Settings.Global.ANIMATOR_DURATION_SCALE, 1f);
+            } else {
+                scale = Settings.System.getFloat(getContentResolver(),
+                        "animator_duration_scale", 1f);
+            }
+            return scale > 0f;
         } catch (Exception e) {
             return true;
         }
@@ -1107,6 +1392,17 @@ public class MainActivity extends Activity {
 
     private int dp(int value) {
         return Math.round(value * getResources().getDisplayMetrics().density);
+    }
+
+    /** View.generateViewId is API 17; these ids only have to be unique in this tree. */
+    private int newViewId() {
+        return 0x7F0F0000 | (++nextViewId & 0xFFFF);
+    }
+
+    private void setAccessibility(View view, int mode) {
+        if (Build.VERSION.SDK_INT >= 16) {
+            view.setImportantForAccessibility(mode);
+        }
     }
 
     private class MatrixScroll extends ScrollView {

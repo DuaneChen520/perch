@@ -8,6 +8,7 @@ import android.graphics.Paint;
 import android.graphics.Path;
 import android.graphics.RadialGradient;
 import android.graphics.Shader;
+import android.os.Build;
 import android.util.AttributeSet;
 import android.view.View;
 
@@ -51,7 +52,9 @@ public final class WallpaperBackground extends View {
         super(context, attrs);
         setFocusable(false);
         setClickable(false);
-        setImportantForAccessibility(IMPORTANT_FOR_ACCESSIBILITY_NO);
+        if (Build.VERSION.SDK_INT >= 16) {
+            setImportantForAccessibility(IMPORTANT_FOR_ACCESSIBILITY_NO);
+        }
         moss = getResources().getColor(R.color.accent) & 0x00FFFFFF;
         grainPaint.setShader(new android.graphics.BitmapShader(
                 grain(), Shader.TileMode.REPEAT, Shader.TileMode.REPEAT));
